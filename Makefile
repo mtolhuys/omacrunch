@@ -10,6 +10,7 @@ check:
 	omarchy plugin validate .
 	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml
 	node tests/metrics.test.js
+	node tests/contracts.test.js
 	omakit inspect . --full
 	omakit verify .
 
@@ -33,6 +34,11 @@ open:
 	if [ "$$ready" -ne 1 ]; then \
 		echo "Omacrunch service did not register within 10 seconds." >&2; \
 		echo "Inspect the current Quickshell log for 'service plugin load failed'." >&2; \
+		exit 1; \
+	fi
+	@bar_geometry="$$(omarchy-shell shell debugBarGeometry)"; \
+	if [ "$$bar_geometry" != "[]" ]; then \
+		echo "Omacrunch service loaded, but the stock bar is still active: $$bar_geometry" >&2; \
 		exit 1; \
 	fi
 	@echo "Omacrunch service state:"

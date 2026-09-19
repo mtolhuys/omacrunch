@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 - 2026-09-19
+
+- Fix replacement-bar construction by providing defaults for properties that
+  Omarchy injects only after the QML Loader has created the component.
+- Make `local-test` detect a silent fallback to the stock Omarchy bar.
+- Add a regression test for the replacement-bar loader contract.
+
 ## 0.2.1 - 2026-09-19
 
 - Wait for the asynchronous Omarchy plugin reload before probing the service

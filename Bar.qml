@@ -1,13 +1,17 @@
 import QtQuick
+import Quickshell
 
 // Omacrunch is intentionally barless. Selecting this bar plugin replaces the
 // stock Omarchy bar with a host-compatible object that creates no surfaces.
 Item {
   id: root
 
-  required property string omarchyPath
-  required property var barWidgetRegistry
-  required property var barConfig
+  // Replacement bars are instantiated before the host injects these values.
+  // Defaults are therefore mandatory; `required` makes the Loader reject the
+  // component before configureBar() gets a chance to assign them.
+  property string omarchyPath: Quickshell.env("OMARCHY_PATH")
+  property var barWidgetRegistry: null
+  property var barConfig: ({})
   property var shell: null
   property var manifest: null
   property var pluginRegistry: null

@@ -139,7 +139,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.2.1",
+        version: manifest && manifest.version ? String(manifest.version) : "0.2.2",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
