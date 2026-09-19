@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Commons
 import qs.Ui
+import "MenuActions.js" as MenuActions
 
 Item {
   id: root
@@ -21,16 +22,8 @@ Item {
   property real requestedY: Style.space(42)
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
-  readonly property var rootEntries: [
-    { key: "T", label: "Terminal" },
-    { key: "F", label: "Files" },
-    { key: "W", label: "Web browser" },
-    { key: "A", label: "Applications" },
-    { key: "S", label: "Style" },
-    { key: "I", label: "Widgets", action: "widgets" },
-    { key: "K", label: "Keybindings" },
-    { key: "P", label: "Power" }
-  ]
+  readonly property var rootEntries: MenuActions.rootEntries()
+  readonly property int widgetsIndex: rootEntries.findIndex(function(entry) { return entry.action === "widgets" })
   readonly property var entries: page === "widgets" ? widgetEntries : rootEntries
   readonly property string screenName: targetScreen ? String(targetScreen.name) : ""
   readonly property var widgetEntries: [
@@ -92,20 +85,15 @@ Item {
     if (page === "widgets") {
       if (!store) return
       if (entry.widget) { store.toggle(screenName, entry.widget); return }
-      if (entry.action === "back") { page = "root"; selectedIndex = 5; return }
+      if (entry.action === "back") { page = "root"; selectedIndex = widgetsIndex; return }
       if (entry.action === "location") { locationInput.text = store.layout.weatherCity; locationBox.visible = true; locationInput.forceActiveFocus(); return }
       if (entry.action === "edit") { root.dismiss(); store.begin(); return }
       return
     }
-    if (index === 0) Quickshell.execDetached(["omarchy-launch-terminal"])
-    else if (index === 1) Quickshell.execDetached(["omarchy-launch-nautilus"])
-    else if (index === 2) Quickshell.execDetached(["omarchy-launch-browser"])
-    else if (index === 3) Quickshell.execDetached(["omarchy-menu", "toggle", "apps"])
-    else if (index === 4) Quickshell.execDetached(["omarchy-menu", "toggle", "style"])
-    else if (index === 6) Quickshell.execDetached(["omarchy-menu-keybindings"])
-    else if (index === 7) Quickshell.execDetached(["omarchy-menu", "toggle", "system"])
-    else return
+    var command = MenuActions.commandFor(entry)
+    if (!command.length) return
     root.dismiss()
+    Quickshell.execDetached(command)
   }
 
   function activateKey(text) {
@@ -159,7 +147,7 @@ Item {
         if (commandModifiers) {
           event.accepted = false
         } else if (event.key === Qt.Key_Escape || event.key === Qt.Key_Q) {
-          if (root.page === "widgets") { root.page = "root"; root.selectedIndex = 5 }
+          if (root.page === "widgets") { root.page = "root"; root.selectedIndex = root.widgetsIndex }
           else root.dismiss()
           event.accepted = true
         } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
@@ -268,7 +256,7 @@ Item {
                   font.pixelSize: Style.font.body
                 }
                 Text {
-                  visible: root.page === "widgets" || (index >= 3 && index !== 6)
+                  visible: root.page === "widgets" || !!modelData.route || modelData.action === "widgets"
                   text: modelData.widget && root.store
                     ? (root.store.enabled(root.screenName, modelData.widget) ? "●" : "○")
                     : "›"

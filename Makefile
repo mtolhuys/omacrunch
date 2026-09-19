@@ -16,6 +16,7 @@ check:
 	node tests/tone-sample.test.js
 	node tests/workspace.test.js
 	node tests/contracts.test.js
+	node tests/menu-actions.test.js
 	node tests/widget-layout.test.js
 	node tests/plugin-shelf.test.js
 	python3 -B tests/widget-data.test.py

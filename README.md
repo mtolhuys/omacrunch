@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.7.2` provides:
+Version `0.7.3` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -43,7 +43,7 @@ The manifest exposes three cooperating Quattro plugin kinds:
 - `service` — reads Linux `/proc` data every two seconds and renders the
   desktop overlay below application windows;
 - `menu` — supplies the right-click root menu and delegates to the standard
-  Omarchy application, style, keybinding and power menus.
+  Omarchy application, wallpaper, theme, style, keybinding and power menus.
 
 No Openbox, Tint2 or Conky process is introduced. Omacrunch recreates their
 roles inside the existing Omarchy shell instead of running a second desktop
@@ -259,7 +259,9 @@ surface or keyboard grab behind.
 - Click or right-click the Omarchy logo: open the desktop menu.
 - Right-click empty desktop: desktop menu.
 - Arrow keys or `J`, then Enter: navigate and activate.
-- `T`, `F`, `W`, `A`, `S`, `I`, `K`, `P`: direct root-menu accelerators.
+- `T`, `F`, `W`, `A`, `B`, `H`, `S`, `I`, `K`, `P`: direct root-menu accelerators.
+- **Wallpaper** (`B`): native background picker, matching Super+Ctrl+Space.
+- **Theme** (`H`): native theme picker, matching Super+Shift+Ctrl+Space.
 - Escape or `Q`: close the root menu.
 
 Existing Omarchy/Hyprland shortcuts remain available and are shown directly

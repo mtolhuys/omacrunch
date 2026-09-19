@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.3 - 2026-09-20
+
+- Add direct Wallpaper and Theme root-menu entries using the native Omarchy
+  `background` and `theme` routes, matching Super+Ctrl+Space and
+  Super+Shift+Ctrl+Space. Menu accelerators are B and H respectively.
+- Resolve menu actions and submenu arrows by entry identity instead of row
+  number; keep Widgets return selection correct when entries are inserted.
+- Close the root menu before launching a native picker to hand over focus.
+
 ## 0.7.2 - 2026-09-20
 
 - Accept drops slightly outside the thin plugin strip while it owns the pointer
