@@ -25,6 +25,12 @@ Column {
     return "Thunderstorms"
   }
   function number(value, unit) { return typeof value === "number" ? Math.round(value) + unit : "—" }
+  function tokens(value) {
+    if (typeof value !== "number") return "No token count available"
+    if (value >= 1000000) return (value / 1000000).toFixed(1) + "M tokens today"
+    if (value >= 1000) return (value / 1000).toFixed(1) + "k tokens today"
+    return Math.round(value) + " tokens today"
+  }
   function age(value) {
     var stamp = Date.parse(value)
     if (!isFinite(stamp)) return "Update time unknown"
@@ -122,7 +128,7 @@ Column {
               Meter { fraction: modelData.percent / 100 }
             }
           }
-          Label { text: typeof agent.modelData.tokens === "number" ? agent.modelData.tokens.toLocaleString() + " tokens today" : "No token count available"; font.pixelSize: Style.font.caption }
+          Label { text: root.tokens(agent.modelData.tokens); font.pixelSize: Style.font.caption }
           Label { text: root.age(agent.modelData.updatedAt); opacity: 0.82; font.pixelSize: Style.font.caption }
         }
       }

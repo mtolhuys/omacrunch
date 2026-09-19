@@ -17,6 +17,7 @@ check:
 	node tests/contracts.test.js
 	node tests/widget-layout.test.js
 	python3 -B tests/widget-data.test.py
+	bash tests/widget-ui.sh
 	omakit inspect . --full
 	omakit verify .
 

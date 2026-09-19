@@ -276,6 +276,14 @@ Item {
       WlrLayershell.keyboardFocus: widgets.editing ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
       exclusionMode: ExclusionMode.Ignore
 
+      Image {
+        anchors.fill: parent
+        visible: widgets.editing
+        source: visible ? "file://" + root.currentBackground : ""
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+      }
+
       Connections {
         target: widgets
         function onEditingChanged() {
@@ -470,7 +478,7 @@ Item {
       Rectangle {
         visible: widgets.editing
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Style.space(40)
+        y: Style.space(4)
         width: editorRow.implicitWidth + Style.space(24)
         height: Style.space(38)
         z: 100

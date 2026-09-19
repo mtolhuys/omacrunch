@@ -83,6 +83,7 @@ Item {
 
     var result = analyzeZone(0, 12, 0, 18)
     zones = {
+      whole: result,
       header: analyzeZone(0, 12, 0, 6),
       body: analyzeZone(0, 12, 5, 14),
       footer: analyzeZone(0, 12, 13, 18),

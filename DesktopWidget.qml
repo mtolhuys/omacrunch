@@ -19,7 +19,7 @@ Item {
   default property alias content: contentItem.data
   readonly property var placement: Layout.position(store.item(screenName, widgetId), defaultX, defaultY,
     width, height, parent ? parent.width : 1, parent ? parent.height : 1)
-  readonly property var tone: sampler.zones.body || { useLight: true, minimumContrast: 1, requiredExtremeOpacity: 0.8 }
+  readonly property var tone: sampler.zones.whole || { useLight: true, minimumContrast: 1, requiredExtremeOpacity: 0.8 }
   readonly property color ink: tone.useLight ? "#f2f2f2" : "#111111"
   readonly property real surfaceOpacity: Number(tone.minimumContrast) >= 4.5 ? 0
     : Math.min(0.94, Math.max(0.22, Number(tone.requiredExtremeOpacity || 0.8) + 0.08))

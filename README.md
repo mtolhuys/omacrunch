@@ -93,6 +93,9 @@ a drag or wallpaper change. Loading and error states use a readable fallback.
 
 Collectors run only while their widget is enabled on at least one monitor;
 multiple monitors share each feed. Widgets are read-only outside edit mode.
+The automated offscreen Quickshell test sends mouse-drag events to the actual
+widget component and checks Cancel, atomic Save and a fresh store reload.
+It uses an isolated temporary state directory, not the user's saved layout.
 
 ## Install from this local checkout
 
@@ -143,6 +146,11 @@ make marketplace-check
 anything. A public GitHub origin is intentionally not required for local use;
 the submission preflight will report that missing publication metadata until
 one is configured.
+The official security baseline is **not run** without that origin; a successful
+`verify` command with `invoked: false` is not a passed baseline.
+`omakit weigh` refuses full replacement bars (`plugin-is-bar`), so this project
+does not claim an Omakit CPU/memory measurement. The shipped Omakit lab suites
+exercise Omakit's Run/Store/weigh blocks, not arbitrary desktop widget gestures.
 
 To validate the clean Git `HEAD`, replace any earlier local installation,
 verify that its service is alive and open its root menu in one pass:
