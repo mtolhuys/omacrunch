@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 
 PLUGIN_ID := io.github.mtolhuys.omacrunch
+PLUGIN_DIR := $(HOME)/.config/omarchy/plugins/$(PLUGIN_ID)
 OMARCHY_SHELL_DIR ?= /usr/share/omarchy/shell
 
 .PHONY: check marketplace-check install-local open local-test remove-local
@@ -25,8 +26,26 @@ remove-local:
 		omarchy plugin remove "$(PLUGIN_ID)" --yes; \
 	fi
 
-install-local: remove-local
-	omarchy plugin add "$(CURDIR)" --enable --yes
+install-local:
+	@if omarchy plugin list --json | jq -e 'any(.[]; .id == "$(PLUGIN_ID)")' >/dev/null; then \
+		if [ ! -d "$(PLUGIN_DIR)/.git" ]; then \
+			echo "Refusing to overwrite a non-git local installation at $(PLUGIN_DIR)." >&2; \
+			exit 1; \
+		fi; \
+		origin="$$(git -C "$(PLUGIN_DIR)" remote get-url origin)"; \
+		origin_path="$$(realpath -- "$$origin" 2>/dev/null || true)"; \
+		source_path="$$(realpath -- "$(CURDIR)")"; \
+		if [ "$$origin_path" != "$$source_path" ]; then \
+			echo "Refusing to replace $(PLUGIN_ID): installed origin is $$origin, not $(CURDIR)." >&2; \
+			exit 1; \
+		fi; \
+		omarchy plugin update "$(PLUGIN_ID)" --yes; \
+		if ! omarchy plugin list --json | jq -e 'any(.[]; .id == "$(PLUGIN_ID)" and .enabled == true)' >/dev/null; then \
+			omarchy plugin enable "$(PLUGIN_ID)"; \
+		fi; \
+	else \
+		omarchy plugin add "$(CURDIR)" --enable --yes; \
+	fi
 
 open:
 	@ready=0; \

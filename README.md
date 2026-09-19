@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.4.4` provides:
+Version `0.4.5` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -63,12 +63,16 @@ right-clicking an empty part of the desktop opens the root menu.
 ## Update a local test installation
 
 Local installation clones committed Git state. Commit the version you want to
-test, then remove and add it again:
+test, then fast-forward the installed clone without unloading the active bar:
 
 ```bash
-omarchy plugin remove io.github.mtolhuys.omacrunch --yes
-omarchy plugin add "$HOME/Projects/plugins/omacrunch" --enable --yes
+omarchy plugin update io.github.mtolhuys.omacrunch --yes
 ```
+
+This preserves a stable layer-shell exclusive zone while applications are
+running. Removing and immediately re-adding an active replacement bar can
+otherwise make some Wayland clients briefly retain a stale buffer after the
+two opposing screen resizes.
 
 ## Remove
 
@@ -103,10 +107,12 @@ verify that its service is alive and open its root menu in one pass:
 make local-test
 ```
 
-`make local-test` refuses a dirty worktree. This guarantees that Omarchy clones
-and runs the same commit that passed the checks. After installation it waits up
-to ten seconds for the shell's asynchronous plugin reload before probing the
-service. It proves one visible 30-pixel Omacrunch bar exists per screen, at
+`make local-test` refuses a dirty worktree. This guarantees that Omarchy runs
+the same commit that passed the checks. An existing local clone is fast-forwarded
+and rescanned in place so the active bar is never deliberately unloaded; a
+first run still installs and enables it. It then waits up to ten seconds for
+the shell's asynchronous plugin reload before probing the service. It proves
+one visible 30-pixel Omacrunch bar exists per screen, at
 least five workspaces are exposed, the native status widgets loaded and the
 calendar routes through the replacement bar. Finally it exercises the adaptive
 wallpaper lifecycle and opens and closes the root menu, leaving no fullscreen

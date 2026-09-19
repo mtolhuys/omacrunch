@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.5 - 2026-09-20
+
+- Update an existing local test installation in place instead of removing and
+  re-adding the active replacement bar.
+- Keep the layer-shell exclusive zone stable during `make local-test`, avoiding
+  transient double-resizes that can leave Chromium/Electron Wayland clients
+  with an unpainted strip until their next workspace redraw.
+- Refuse to overwrite an installation whose Git origin is not this checkout.
+
 ## 0.4.4 - 2026-09-20
 
 - Accept both ImageMagick `#RRGGBB` and `#RRGGBBAA` pixel output so wallpapers
