@@ -70,9 +70,9 @@ Column {
     Column {
       spacing: Style.space(8)
       Label { text: root.report.city || "Choose your location"; font.pixelSize: Style.font.caption }
-      Label { text: root.number(root.current.temperature_2m, "°C"); font.pixelSize: Style.space(40); font.bold: true }
-      Label { text: root.current.weather_code === undefined ? "" : root.condition(root.current.weather_code) }
-      Label { text: "Feels " + root.number(root.current.apparent_temperature, "°") + "  ·  " + root.number(root.current.wind_speed_10m, " km/h"); font.pixelSize: Style.font.caption }
+      Label { visible: root.current.temperature_2m !== undefined; text: root.number(root.current.temperature_2m, "°C"); font.pixelSize: Style.space(40); font.bold: true }
+      Label { visible: root.current.weather_code !== undefined; text: visible ? root.condition(root.current.weather_code) : "" }
+      Label { visible: root.current.temperature_2m !== undefined; text: "Feels " + root.number(root.current.apparent_temperature, "°") + "  ·  " + root.number(root.current.wind_speed_10m, " km/h"); font.pixelSize: Style.font.caption }
       Repeater {
         model: root.report.daily && root.report.daily.time ? root.report.daily.time : []
         delegate: Label {

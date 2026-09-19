@@ -267,6 +267,7 @@ Item {
     PanelWindow {
       id: desktop
       required property var modelData
+      property int widgetRevision: 0
 
       screen: modelData
       anchors { top: true; bottom: true; left: true; right: true }
@@ -452,7 +453,10 @@ Item {
       }
 
       Repeater {
+        id: widgetRepeater
         model: ["weather", "agents", "disk", "calendar"]
+        onItemAdded: desktop.widgetRevision += 1
+        onItemRemoved: desktop.widgetRevision += 1
         delegate: DesktopWidget {
           id: extraWidget
           required property string modelData
@@ -462,7 +466,11 @@ Item {
           widgetId: modelData
           title: ({ weather: "Weather", agents: "Agent Usage", disk: "Disk Usage", calendar: "Calendar" })[modelData]
           defaultX: Style.space(24) + (index % 2) * (width + Style.space(18))
-          defaultY: Style.space(62) + Math.floor(index / 2) * Style.space(390)
+          defaultY: {
+            var revision = desktop.widgetRevision
+            var above = index >= 2 ? widgetRepeater.itemAt(index - 2) : null
+            return above ? above.defaultY + above.height + Style.space(18) : Style.space(62)
+          }
           wallpaper: root.currentBackground
           wallpaperRevision: root.wallpaperRevision
           WidgetContent {
