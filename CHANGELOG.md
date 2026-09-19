@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 - 2026-09-20
+
+- Add a Widgets submenu with per-monitor visibility for System Monitor,
+  Weather, Agent Usage, Disk Usage and Calendar.
+- Add an explicit layout editor with drag handles, 8px snapping, bounded
+  normalized positions, Save, Cancel and Reset positions.
+- Persist layouts atomically outside the installed plugin so updates retain them.
+- Analyze wallpaper contrast independently for each additional widget.
+- Share bounded, deadline-limited collectors across monitors, only when enabled.
+- Show actual local agent records, filesystem capacity, current-month dates,
+  and opt-in Open-Meteo conditions/forecast with explicit location and stale states.
+
 ## 0.4.7 - 2026-09-20
 
 - Clip Omarchy's native hover-chevron slot out of the composed tray before

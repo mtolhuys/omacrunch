@@ -2,3 +2,4 @@
 *.tmp
 .cache/
 dist/
+__pycache__/

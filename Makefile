@@ -9,12 +9,14 @@ OMARCHY_SHELL_DIR ?= /usr/share/omarchy/shell
 check:
 	@test -z "$$(git status --porcelain)" || { echo "Refusing to test a dirty worktree; commit the version you want Omarchy to clone." >&2; exit 1; }
 	omarchy plugin validate .
-	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml
+	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml DesktopWidget.qml WidgetStore.qml WidgetFeed.qml WidgetContent.qml
 	node tests/metrics.test.js
 	node tests/contrast.test.js
 	node tests/tone-sample.test.js
 	node tests/workspace.test.js
 	node tests/contracts.test.js
+	node tests/widget-layout.test.js
+	python3 -B tests/widget-data.test.py
 	omakit inspect . --full
 	omakit verify .
 

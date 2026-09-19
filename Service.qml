@@ -17,6 +17,12 @@ Item {
   readonly property string currentStateDir: home + "/.local/state/omarchy/current"
   readonly property string currentBackground: currentStateDir + "/background"
   property int wallpaperRevision: 0
+  property alias widgetStore: widgets
+
+  WidgetStore { id: widgets }
+  WidgetFeed { id: weatherFeed; kind: "weather"; active: widgets.anyEnabled("weather"); city: widgets.layout.weatherCity; interval: 900000 }
+  WidgetFeed { id: diskFeed; kind: "disk"; active: widgets.anyEnabled("disk"); interval: 60000 }
+  WidgetFeed { id: agentFeed; kind: "agents"; active: widgets.anyEnabled("agents"); interval: 60000 }
 
   property var cpuSnapshot: ({ total: 0, idle: 0 })
   property real cpuPercent: 0
@@ -184,7 +190,7 @@ Item {
 
   SystemClock {
     id: clock
-    precision: SystemClock.Seconds
+    precision: SystemClock.Minutes
   }
 
   IpcHandler {
@@ -194,7 +200,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.4.7",
+        version: manifest && manifest.version ? String(manifest.version) : "0.5.0",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
@@ -212,6 +218,23 @@ Item {
     function menu(): string {
       root.openMenu(Style.space(42), Style.space(42))
       return "ok"
+    }
+
+    function widgetsMenu(): string {
+      if (root.shell) root.shell.summon(root.pluginId, '{"page":"widgets"}')
+      return "ok"
+    }
+    function widgetState(): string {
+      return JSON.stringify({ editing: widgets.editing, loaded: widgets.loaded, layout: widgets.layout,
+        error: widgets.error, disk: diskFeed.data, agents: agentFeed.data,
+        weather: weatherFeed.data, weatherError: weatherFeed.error })
+    }
+    function editWidgets(): string { widgets.begin(); return "editing" }
+    function finishWidgets(save: bool): string { widgets.finish(save); return "done" }
+    function toggleWidget(screen: string, id: string): string { widgets.toggle(screen, id); return "ok" }
+    function moveWidget(screen: string, id: string, x: real, y: real): string {
+      if (!widgets.editing) return "edit mode required"
+      widgets.place(screen, id, { x: x, y: y }); return "ok"
     }
 
     function menuState(): string {
@@ -249,22 +272,37 @@ Item {
       anchors { top: true; bottom: true; left: true; right: true }
       color: "transparent"
       WlrLayershell.namespace: "omacrunch-desktop"
-      WlrLayershell.layer: WlrLayer.Bottom
-      WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+      WlrLayershell.layer: widgets.editing ? WlrLayer.Overlay : WlrLayer.Bottom
+      WlrLayershell.keyboardFocus: widgets.editing ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
       exclusionMode: ExclusionMode.Ignore
+
+      Connections {
+        target: widgets
+        function onEditingChanged() {
+          if (widgets.editing) Qt.callLater(function() { editorKeys.forceActiveFocus() })
+        }
+      }
+
+      FocusScope {
+        id: editorKeys
+        anchors.fill: parent
+        focus: widgets.editing
+        Keys.onEscapePressed: widgets.finish(false)
+        Keys.onReturnPressed: widgets.finish(true)
+      }
 
       WallpaperTone {
         id: wallpaperTone
-        x: monitorColumn.x
-        y: monitorColumn.y
+        x: monitorFrame.x
+        y: monitorFrame.y
         z: 0
-        sourcePath: root.currentBackground
+        sourcePath: monitorFrame.dragging ? "" : root.currentBackground
         revision: root.wallpaperRevision
         screenWidth: desktop.width
         screenHeight: desktop.height
         sampleRect: Qt.rect(
-          monitorColumn.x - Style.space(22),
-          monitorColumn.y - Style.space(18),
+          monitorFrame.x - Style.space(22),
+          monitorFrame.y - Style.space(18),
           monitorColumn.width + Style.space(44),
           monitorColumn.implicitHeight + Style.space(36)
         )
@@ -288,19 +326,27 @@ Item {
         z: 3
         acceptedButtons: Qt.RightButton
         onClicked: function(mouse) {
+          if (widgets.editing) return
           root.openMenu(mouse.x, mouse.y)
           mouse.accepted = true
         }
       }
 
+      DesktopWidget {
+        id: monitorFrame
+        store: widgets
+        screenName: String(desktop.screen.name)
+        widgetId: "monitor"
+        title: "System Monitor"
+        adaptiveSurface: false
+        width: Math.min(Style.space(360), desktop.width * 0.34)
+        defaultX: desktop.width - width - Style.space(46)
+        defaultY: Style.space(42)
+
       ColumnLayout {
         id: monitorColumn
         z: 2
-        width: Math.min(Style.space(360), desktop.width * 0.34)
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.topMargin: Style.space(42)
-        anchors.rightMargin: Style.space(46)
+        width: parent.width
         spacing: Style.space(12)
 
         WidgetSurface {
@@ -392,6 +438,66 @@ Item {
             Hint { keys: "SUPER + Q"; action: "close"; toneZone: "footer" }
             Hint { keys: "RIGHT CLICK"; action: "omacrunch"; toneZone: "footer" }
             Hint { keys: "SUPER + K"; action: "all keys"; toneZone: "footer" }
+          }
+        }
+      }
+      }
+
+      Repeater {
+        model: ["weather", "agents", "disk", "calendar"]
+        delegate: DesktopWidget {
+          id: extraWidget
+          required property string modelData
+          required property int index
+          store: widgets
+          screenName: String(desktop.screen.name)
+          widgetId: modelData
+          title: ({ weather: "Weather", agents: "Agent Usage", disk: "Disk Usage", calendar: "Calendar" })[modelData]
+          defaultX: Style.space(24) + (index % 2) * (width + Style.space(18))
+          defaultY: Style.space(62) + Math.floor(index / 2) * Style.space(390)
+          wallpaper: root.currentBackground
+          wallpaperRevision: root.wallpaperRevision
+          WidgetContent {
+            width: parent.width
+            kind: extraWidget.modelData
+            ink: widgets.editing ? Color.menu.text : extraWidget.ink
+            today: clock.date
+            feed: kind === "weather" ? weatherFeed : kind === "agents" ? agentFeed : kind === "disk" ? diskFeed : null
+          }
+        }
+      }
+
+      Rectangle {
+        visible: widgets.editing
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Style.space(40)
+        width: editorRow.implicitWidth + Style.space(24)
+        height: Style.space(38)
+        z: 100
+        color: Color.menu.background
+        border.color: Color.menu.border
+        Row {
+          id: editorRow
+          anchors.centerIn: parent
+          spacing: Style.space(18)
+          Text { text: "WIDGET LAYOUT"; color: Color.menu.text; font.family: "monospace"; font.pixelSize: Style.font.body; anchors.verticalCenter: parent.verticalCenter }
+          Repeater {
+            model: ["Save", "Cancel", "Reset positions"]
+            delegate: Rectangle {
+              required property int index
+              required property string modelData
+              width: actionLabel.implicitWidth + Style.space(16); height: Style.space(28)
+              color: actionMouse.containsMouse ? Color.menu.selectedBackground : "transparent"
+              Text { id: actionLabel; anchors.centerIn: parent; text: modelData; color: Color.menu.text; font.family: "monospace"; font.pixelSize: Style.font.body }
+              MouseArea {
+                id: actionMouse
+                anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  if (index === 2) widgets.reset(String(desktop.screen.name))
+                  else widgets.finish(index === 0)
+                }
+              }
+            }
           }
         }
       }

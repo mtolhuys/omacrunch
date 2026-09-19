@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.4.7` provides:
+Version `0.5.0` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -25,7 +25,9 @@ Version `0.4.7` provides:
   and add only the local contrast floor required by the wallpaper;
 - a sharp, monochrome root menu on right-click;
 - theme-derived bar colours plus wallpaper-derived monitor contrast;
-- no background daemon, network access, state files or privileged commands.
+- optional Weather, Agent Usage, Disk Usage and Calendar desktop widgets;
+- per-monitor widget layouts with drag handles, snapping, Save and Cancel;
+- no extra background daemon or privileged commands.
 
 The topbar, wallpaper telemetry and root menu form one desktop experience.
 There is no second panel daemon and no Openbox compatibility layer.
@@ -50,6 +52,47 @@ calendar and tray menus remain the native Omarchy implementations.
 
 - Omarchy 4.0.3 or newer with the Quattro shell plugin contract.
 - The standard Omarchy launcher commands on `PATH`.
+- Python 3 (standard library only) for the optional data widgets.
+- ImageMagick for wallpaper contrast sampling.
+
+## Desktop widgets
+
+Open the root menu → **Widgets** (`I`). Toggle widgets for the current monitor.
+Only the existing System Monitor is enabled initially. Choose **Edit layout**,
+drag a widget by its labelled handle, then **Save** (Enter) or **Cancel** (Escape).
+**Reset positions** restores the current screen's starting arrangement while
+preserving which widgets are enabled. Application windows stay underneath the
+editor; leaving it restores the desktop layer and releases keyboard focus.
+
+Positions snap to an 8-pixel grid and are saved as fractions of each monitor's
+available area. A resolution change clamps widgets back on-screen, while
+disconnected monitors retain their settings for when they return. Move a widget
+on each screen independently; dragging across monitor edges is not supported.
+State is written atomically to
+`$XDG_STATE_HOME/omarchy/omacrunch/widgets.json` (default:
+`~/.local/state/omarchy/omacrunch/widgets.json`). Uninstalling preserves this layout.
+
+Each new widget samples the wallpaper under its own position, including after
+a drag or wallpaper change. Loading and error states use a readable fallback.
+
+- **Weather** shows Celsius, conditions, wind and three forecast days. It uses
+  the configured Omarchy weather location or a city set in **Weather location**.
+  With no location it asks for one; it does not infer your location from your IP.
+  When enabled, it contacts `geocoding-api.open-meteo.com` (city lookup) and
+  `api.open-meteo.com` every 15 minutes. [Open-Meteo](https://open-meteo.com/)
+  supplies the data. Requests have timeouts and response limits; errors preserve
+  the last successful result with its age shown.
+- **Agent Usage** reads Omarchy's existing `agents/usage/*.json` records once a
+  minute. It displays provider limits, token counts, auth/status errors and
+  update age. It does not read credentials or transcripts or refresh providers
+  itself. Missing limits are not presented as zero usage.
+- **Disk Usage** samples `/` and the home filesystem once a minute, showing
+  available space and capacity. Both rows can represent the same filesystem.
+- **Calendar** is a local month view with Monday first and today highlighted;
+  it does not connect to online calendars or display appointments.
+
+Collectors run only while their widget is enabled on at least one monitor;
+multiple monitors share each feed. Widgets are read-only outside edit mode.
 
 ## Install from this local checkout
 
@@ -131,7 +174,7 @@ surface or keyboard grab behind.
 - Click or right-click the Omarchy logo: open the Omacrunch root menu.
 - Right-click empty desktop: Omacrunch root menu.
 - Arrow keys or `J`, then Enter: navigate and activate.
-- `T`, `F`, `W`, `A`, `S`, `K`, `P`: direct root-menu accelerators.
+- `T`, `F`, `W`, `A`, `S`, `I`, `K`, `P`: direct root-menu accelerators.
 - Escape or `Q`: close the root menu.
 
 Existing Omarchy/Hyprland shortcuts remain available and are shown directly
