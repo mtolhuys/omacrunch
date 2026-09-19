@@ -10,9 +10,9 @@ Column {
   required property color ink
   required property var feed
   required property date today
-  readonly property var data: feed ? feed.data : ({})
-  readonly property var rows: data.rows || []
-  readonly property var current: data.current || ({})
+  readonly property var report: feed ? feed.report : ({})
+  readonly property var rows: report.rows || []
+  readonly property var current: report.current || ({})
   spacing: Style.space(10)
 
   function condition(code) {
@@ -63,22 +63,22 @@ Column {
     id: weather
     Column {
       spacing: Style.space(8)
-      Label { text: root.data.city || "Choose your location"; font.pixelSize: Style.font.caption }
+      Label { text: root.report.city || "Choose your location"; font.pixelSize: Style.font.caption }
       Label { text: root.number(root.current.temperature_2m, "°C"); font.pixelSize: Style.space(40); font.bold: true }
       Label { text: root.current.weather_code === undefined ? "" : root.condition(root.current.weather_code) }
       Label { text: "Feels " + root.number(root.current.apparent_temperature, "°") + "  ·  " + root.number(root.current.wind_speed_10m, " km/h"); font.pixelSize: Style.font.caption }
       Repeater {
-        model: root.data.daily && root.data.daily.time ? root.data.daily.time : []
+        model: root.report.daily && root.report.daily.time ? root.report.daily.time : []
         delegate: Label {
           required property int index
           required property string modelData
           text: Qt.formatDate(new Date(modelData + "T12:00:00"), "ddd") + "    "
-            + root.number(root.data.daily.temperature_2m_min[index], "°") + " / "
-            + root.number(root.data.daily.temperature_2m_max[index], "°")
+            + root.number(root.report.daily.temperature_2m_min[index], "°") + " / "
+            + root.number(root.report.daily.temperature_2m_max[index], "°")
           font.pixelSize: Style.font.caption
         }
       }
-      Label { text: (root.data.updatedAt ? root.age(root.data.updatedAt) + " · " : "") + "Open-Meteo"; font.pixelSize: Style.font.caption }
+      Label { text: (root.report.updatedAt ? root.age(root.report.updatedAt) + " · " : "") + "Open-Meteo"; font.pixelSize: Style.font.caption }
     }
   }
   Component {

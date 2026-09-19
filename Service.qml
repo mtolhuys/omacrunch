@@ -226,8 +226,8 @@ Item {
     }
     function widgetState(): string {
       return JSON.stringify({ editing: widgets.editing, loaded: widgets.loaded, layout: widgets.layout,
-        error: widgets.error, disk: diskFeed.data, agents: agentFeed.data,
-        weather: weatherFeed.data, weatherError: weatherFeed.error })
+        error: widgets.error, disk: diskFeed.report, agents: agentFeed.report,
+        weather: weatherFeed.report, weatherError: weatherFeed.error })
     }
     function editWidgets(): string { widgets.begin(); return "editing" }
     function finishWidgets(save: bool): string { widgets.finish(save); return "done" }

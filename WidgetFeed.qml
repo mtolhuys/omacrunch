@@ -7,7 +7,7 @@ Item {
   property bool active: false
   property string city: ""
   property int interval: 60000
-  property var data: ({})
+  property var report: ({})
   property string error: ""
   property string buffer: ""
   readonly property bool busy: collector.running
@@ -22,7 +22,7 @@ Item {
     else collector.running = false
   }
   onCityChanged: {
-    data = ({})
+    report = ({})
     collector.running = false
     Qt.callLater(refresh)
   }
@@ -46,7 +46,7 @@ Item {
       try {
         var next = JSON.parse(root.buffer)
         if (next.error) root.error = String(next.error)
-        else { root.data = next; root.error = "" }
+        else { root.report = next; root.error = "" }
       } catch (e) { root.error = "Invalid response; will retry." }
     }
   }
