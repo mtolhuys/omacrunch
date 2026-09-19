@@ -11,6 +11,7 @@ check:
 	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml
 	node tests/metrics.test.js
 	node tests/contrast.test.js
+	node tests/tone-sample.test.js
 	node tests/workspace.test.js
 	node tests/contracts.test.js
 	omakit inspect . --full

@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell.Io
 import "Contrast.js" as Contrast
+import "ToneSample.js" as ToneSample
 
 // Samples the exact wallpaper crop behind the telemetry block. ImageMagick
 // emits a fixed 12x18 pixel grid, keeping output bounded while preserving
@@ -42,6 +43,9 @@ Item {
 
   function schedule() {
     analyzed = false
+    // Never retain a light-wallpaper decision while a new image is pending.
+    // The empty state is deliberately light ink on a dark local surface.
+    zones = ({})
     refreshDebounce.restart()
   }
 
@@ -56,16 +60,8 @@ Item {
 
   function acceptPixelLine(line) {
     if (gridPixels.length >= 216) return
-    var match = String(line || "").match(/^\s*(\d+),(\d+):.*#([0-9a-f]{6})\b/i)
-    if (!match) return
-    var hex = match[3]
-    gridPixels.push({
-      x: parseInt(match[1], 10),
-      y: parseInt(match[2], 10),
-      red: parseInt(hex.slice(0, 2), 16),
-      green: parseInt(hex.slice(2, 4), 16),
-      blue: parseInt(hex.slice(4, 6), 16)
-    })
+    var pixel = ToneSample.parsePixelLine(line)
+    if (pixel) gridPixels.push(pixel)
   }
 
   function pixelsFor(left, right, top, bottom) {
@@ -83,7 +79,7 @@ Item {
   }
 
   function finishGrid() {
-    if (!gridPixels.length) return
+    if (gridPixels.length < 216) return
 
     var result = analyzeZone(0, 12, 0, 18)
     zones = {

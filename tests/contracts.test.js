@@ -6,6 +6,7 @@ const bar = fs.readFileSync(path.join(__dirname, "..", "Bar.qml"), "utf8")
 const menu = fs.readFileSync(path.join(__dirname, "..", "Menu.qml"), "utf8")
 const makefile = fs.readFileSync(path.join(__dirname, "..", "Makefile"), "utf8")
 const service = fs.readFileSync(path.join(__dirname, "..", "Service.qml"), "utf8")
+const wallpaperTone = fs.readFileSync(path.join(__dirname, "..", "WallpaperTone.qml"), "utf8")
 const injected = ["omarchyPath", "barWidgetRegistry", "barConfig"]
 
 for (const property of injected) {
@@ -63,9 +64,9 @@ assert.doesNotMatch(service, /color:\s*Util\.alpha\(root\.scrimColor/)
 assert.match(service, /WidgetSurface\s*\{\s*toneZone:\s*"body"/)
 assert.match(service, /onZonesChanged:\s*root\.wallpaperZones\s*=\s*zones/)
 assert.match(service, /requiredExtremeOpacity/)
-assert.match(
-  fs.readFileSync(path.join(__dirname, "..", "WallpaperTone.qml"), "utf8"),
-  /gridPixels\.length\s*>=\s*216/
-)
+assert.match(wallpaperTone, /import\s+"ToneSample\.js"\s+as\s+ToneSample/)
+assert.match(wallpaperTone, /zones\s*=\s*\(\{\}\)/)
+assert.match(wallpaperTone, /gridPixels\.length\s*<\s*216/)
+assert.match(makefile, /node tests\/tone-sample\.test\.js/)
 
 console.log("contracts: ok")

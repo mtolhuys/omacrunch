@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.4 - 2026-09-20
+
+- Accept both ImageMagick `#RRGGBB` and `#RRGGBBAA` pixel output so wallpapers
+  with an alpha channel complete spatial contrast analysis.
+- Clear the previous wallpaper's tone map as soon as a new analysis starts;
+  pending or failed analysis now falls back to guaranteed light-on-dark widget
+  surfaces instead of retaining potentially invisible ink.
+- Require the complete bounded 12-by-18 sample before publishing new tones.
+
 ## 0.4.3 - 2026-09-20
 
 - Replace the historical `#!` menu mark with Omarchy's own logo glyph, keeping
