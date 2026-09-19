@@ -17,7 +17,7 @@ check:
 	omakit verify .
 
 marketplace-check:
-	omakit submit . --category Desktop --tags bar,hyprland,workspace --offline
+	omakit submit . --category Desktop --tags Bar,Hyprland,Workspaces --json --offline
 
 remove-local:
 	@if omarchy plugin list --json | jq -e 'any(.[]; .id == "$(PLUGIN_ID)")' >/dev/null; then \

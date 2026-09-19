@@ -42,5 +42,9 @@ assert.match(service, /function\s+toneDebug\s*\(\):\s*string/)
 assert.match(makefile, /omarchy-shell omacrunch toneDebug/)
 assert.match(makefile, /wallpaper lifecycle: initial -> refreshed/)
 assert.match(service, /function\s+refreshTone\s*\(\):\s*string/)
+assert.match(
+  fs.readFileSync(path.join(__dirname, "..", "WallpaperTone.qml"), "utf8"),
+  /histogramPixels\.length\s*>=\s*10240/
+)
 
 console.log("contracts: ok")

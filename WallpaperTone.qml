@@ -53,9 +53,13 @@ Item {
   }
 
   function acceptHistogramLine(line) {
+    // The sampled image is exactly 40x64 pixels. Keep the collector bounded
+    // even if ImageMagick (or a future replacement) emits malformed counts.
+    if (histogramPixels.length >= 10240) return
     var match = String(line || "").match(/^\s*(\d+):.*#([0-9a-f]{6})\b/i)
     if (!match) return
-    var count = Math.min(2560, parseInt(match[1], 10) || 0)
+    var remaining = Math.floor((10240 - histogramPixels.length) / 4)
+    var count = Math.min(remaining, 2560, parseInt(match[1], 10) || 0)
     var red = parseInt(match[2].slice(0, 2), 16)
     var green = parseInt(match[2].slice(2, 4), 16)
     var blue = parseInt(match[2].slice(4, 6), 16)
