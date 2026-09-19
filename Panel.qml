@@ -17,12 +17,12 @@ Item {
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
   readonly property var actions: [
-    { key: "T", label: "Terminal", detail: "Start a clean shell", command: ["omarchy-launch-terminal"] },
-    { key: "F", label: "Files", detail: "Browse the filesystem", command: ["omarchy-launch-nautilus"] },
-    { key: "W", label: "Web", detail: "Open the default browser", command: ["omarchy-launch-browser"] },
-    { key: "A", label: "Applications", detail: "Search installed applications", command: ["omarchy-menu", "toggle", "apps"] },
-    { key: "K", label: "Keybindings", detail: "Show the Omarchy shortcut map", command: ["omarchy-menu-keybindings"] },
-    { key: "P", label: "Power", detail: "Lock, sleep, restart or shut down", command: ["omarchy-menu", "toggle", "system"] }
+    { key: "T", label: "Terminal", detail: "Start a clean shell" },
+    { key: "F", label: "Files", detail: "Browse the filesystem" },
+    { key: "W", label: "Web", detail: "Open the default browser" },
+    { key: "A", label: "Applications", detail: "Search installed applications" },
+    { key: "K", label: "Keybindings", detail: "Show the Omarchy shortcut map" },
+    { key: "P", label: "Power", detail: "Lock, sleep, restart or shut down" }
   ]
   readonly property var shortcuts: [
     { keys: "SUPER + RETURN", label: "terminal" },
@@ -54,9 +54,13 @@ Item {
   }
 
   function activate(index) {
-    var action = root.actions[index]
-    if (!action || !Array.isArray(action.command) || action.command.length === 0) return
-    Quickshell.execDetached(action.command)
+    if (index === 0) Quickshell.execDetached(["omarchy-launch-terminal"])
+    else if (index === 1) Quickshell.execDetached(["omarchy-launch-nautilus"])
+    else if (index === 2) Quickshell.execDetached(["omarchy-launch-browser"])
+    else if (index === 3) Quickshell.execDetached(["omarchy-menu", "toggle", "apps"])
+    else if (index === 4) Quickshell.execDetached(["omarchy-menu-keybindings"])
+    else if (index === 5) Quickshell.execDetached(["omarchy-menu", "toggle", "system"])
+    else return
     root.dismiss()
   }
 
