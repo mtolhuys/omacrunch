@@ -3,8 +3,8 @@ import Quickshell.Io
 import "Contrast.js" as Contrast
 
 // Samples the exact wallpaper crop behind the telemetry block. ImageMagick
-// emits a quantized histogram with at most 16 lines, so analysis is bounded
-// and independent of whether the compositor schedules a hidden Canvas frame.
+// emits a fixed 12x18 pixel grid, keeping output bounded while preserving
+// enough position data to choose tones per header/body/footer and left/right.
 Item {
   id: root
 
@@ -21,9 +21,10 @@ Item {
   property real scrimOpacity: 0
   property real measuredContrast: 1
   property real measuredSpread: 1
+  property var zones: ({})
   property bool analyzed: false
   property int attempts: 0
-  property var histogramPixels: []
+  property var gridPixels: []
 
   width: 1
   height: 1
@@ -48,29 +49,51 @@ Item {
     if (!sourcePath || screenWidth <= 0 || screenHeight <= 0) return
     if (toneProcess.running) toneProcess.running = false
     attempts += 1
-    histogramPixels = []
+    gridPixels = []
     toneProcess.running = true
     processDeadline.restart()
   }
 
-  function acceptHistogramLine(line) {
-    // The sampled image is exactly 40x64 pixels. Keep the collector bounded
-    // even if ImageMagick (or a future replacement) emits malformed counts.
-    if (histogramPixels.length >= 10240) return
-    var match = String(line || "").match(/^\s*(\d+):.*#([0-9a-f]{6})\b/i)
+  function acceptPixelLine(line) {
+    if (gridPixels.length >= 216) return
+    var match = String(line || "").match(/^\s*(\d+),(\d+):.*#([0-9a-f]{6})\b/i)
     if (!match) return
-    var remaining = Math.floor((10240 - histogramPixels.length) / 4)
-    var count = Math.min(remaining, 2560, parseInt(match[1], 10) || 0)
-    var red = parseInt(match[2].slice(0, 2), 16)
-    var green = parseInt(match[2].slice(2, 4), 16)
-    var blue = parseInt(match[2].slice(4, 6), 16)
-    for (var index = 0; index < count; index++) histogramPixels.push(red, green, blue, 255)
+    var hex = match[3]
+    gridPixels.push({
+      x: parseInt(match[1], 10),
+      y: parseInt(match[2], 10),
+      red: parseInt(hex.slice(0, 2), 16),
+      green: parseInt(hex.slice(2, 4), 16),
+      blue: parseInt(hex.slice(4, 6), 16)
+    })
   }
 
-  function finishHistogram() {
-    if (!histogramPixels.length) return
+  function pixelsFor(left, right, top, bottom) {
+    var pixels = []
+    for (var index = 0; index < gridPixels.length; index++) {
+      var pixel = gridPixels[index]
+      if (pixel.x < left || pixel.x >= right || pixel.y < top || pixel.y >= bottom) continue
+      pixels.push(pixel.red, pixel.green, pixel.blue, 255)
+    }
+    return pixels
+  }
 
-    var result = Contrast.analyze(histogramPixels, lightCandidate, darkCandidate)
+  function analyzeZone(left, right, top, bottom) {
+    return Contrast.analyze(pixelsFor(left, right, top, bottom), lightCandidate, darkCandidate)
+  }
+
+  function finishGrid() {
+    if (!gridPixels.length) return
+
+    var result = analyzeZone(0, 12, 0, 18)
+    zones = {
+      headerLeft: analyzeZone(0, 8, 0, 6),
+      headerRight: analyzeZone(6, 12, 0, 6),
+      bodyLeft: analyzeZone(0, 6, 5, 14),
+      bodyRight: analyzeZone(6, 12, 5, 14),
+      footerLeft: analyzeZone(0, 6, 13, 18),
+      footerRight: analyzeZone(6, 12, 13, 18)
+    }
     ink = result.useLight ? lightCandidate : darkCandidate
     haloColor = result.useLight ? "#000000" : "#ffffff"
     haloOpacity = result.haloOpacity
@@ -114,17 +137,16 @@ Item {
         "-gravity", "NorthWest",
         "-crop", area.crop,
         "+repage",
-        "-resize", "40x64!",
+        "-resize", "12x18!",
         "-colorspace", "sRGB",
-        "-colors", "16",
-        "-format", "%c",
-        "histogram:info:-"
+        "-depth", "8",
+        "txt:-"
       ]
     }
     stdout: SplitParser {
-      onRead: function(line) { root.acceptHistogramLine(line) }
+      onRead: function(line) { root.acceptPixelLine(line) }
     }
-    onExited: root.finishHistogram()
+    onExited: root.finishGrid()
     onRunningChanged: if (!running) processDeadline.stop()
   }
 }

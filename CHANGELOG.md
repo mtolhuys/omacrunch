@@ -7,6 +7,9 @@
 - Give text, sparklines, progress bars and dividers a wallpaper-aware local
   contrast halo, preserving legibility over light/dark split imagery without
   hiding the wallpaper.
+- Analyze a bounded spatial grid and choose tones independently for the left
+  and right sides of the header, metrics and shortcut block; graphs blend
+  between both local tones instead of drawing a harsh global outline.
 - Strengthen secondary labels now that their contrast no longer depends on a
   shared translucent surface.
 

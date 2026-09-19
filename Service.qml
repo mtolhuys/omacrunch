@@ -39,11 +39,32 @@ Item {
   property real scrimOpacity: 0
   property real wallpaperContrast: 1
   property real wallpaperSpread: 1
+  property var wallpaperZones: ({})
   property bool wallpaperAnalyzed: false
   property int wallpaperAnalysisAttempts: 0
-  readonly property color quietInk: Util.alpha(ink, 0.78)
-  readonly property color faintInk: Util.alpha(ink, 0.42)
   readonly property color outlineInk: Util.alpha(haloColor, haloOpacity)
+
+  function tone(name) {
+    var candidate = wallpaperZones ? wallpaperZones[name] : null
+    return candidate && candidate.useLight !== undefined
+      ? candidate : { useLight: true, haloOpacity: 0.48 }
+  }
+
+  function zoneInk(name) {
+    return tone(name).useLight ? "#f2f2f2" : "#111111"
+  }
+
+  function zoneQuietInk(name) {
+    return Util.alpha(zoneInk(name), 0.82)
+  }
+
+  function zoneFaintInk(name) {
+    return Util.alpha(zoneInk(name), 0.46)
+  }
+
+  function zoneOutline(name) {
+    return Util.alpha(tone(name).useLight ? "#000000" : "#ffffff", tone(name).haloOpacity)
+  }
 
   function refresh() {
     cpuFile.reload()
@@ -167,7 +188,8 @@ Item {
         wallpaperContrast: Number(root.wallpaperContrast.toFixed(2)),
         wallpaperSpread: Number(root.wallpaperSpread.toFixed(2)),
         scrimOpacity: Number(root.scrimOpacity.toFixed(2)),
-        haloOpacity: Number(root.haloOpacity.toFixed(2))
+        haloOpacity: Number(root.haloOpacity.toFixed(2)),
+        wallpaperZones: root.wallpaperZones
       })
     }
 
@@ -237,6 +259,7 @@ Item {
         onInkChanged: root.ink = ink
         onHaloColorChanged: root.haloColor = haloColor
         onHaloOpacityChanged: root.haloOpacity = haloOpacity
+        onZonesChanged: root.wallpaperZones = zones
         onScrimOpacityChanged: root.scrimOpacity = scrimOpacity
         onMeasuredContrastChanged: root.wallpaperContrast = measuredContrast
         onMeasuredSpreadChanged: root.wallpaperSpread = measuredSpread
@@ -270,13 +293,15 @@ Item {
 
           Ink {
             text: Qt.formatDateTime(clock.date, "HH:mm")
+            toneZone: "headerLeft"
             font.pixelSize: Style.space(48)
             font.bold: true
           }
 
           Ink {
             text: Qt.formatDateTime(clock.date, "dddd, d MMMM yyyy").toUpperCase()
-            color: root.quietInk
+            toneZone: "headerLeft"
+            quiet: true
             font.pixelSize: Style.font.caption
             font.letterSpacing: 1.5
           }
@@ -284,16 +309,17 @@ Item {
 
         ContrastRule {
           Layout.fillWidth: true
-          lineColor: root.faintInk
+          leftZone: "headerLeft"
+          rightZone: "headerRight"
         }
 
         ColumnLayout {
           Layout.fillWidth: true
           spacing: Style.space(3)
 
-          Ink { text: root.hostname.toUpperCase(); font.bold: true; font.pixelSize: Style.font.title }
-          Ink { text: "OMARCHY  /  HYPRLAND  /  " + root.kernel; color: root.quietInk; font.pixelSize: Style.font.caption }
-          Ink { text: root.processor; color: root.quietInk; font.pixelSize: Style.font.caption; elide: Text.ElideRight; Layout.fillWidth: true }
+          Ink { text: root.hostname.toUpperCase(); toneZone: "headerLeft"; font.bold: true; font.pixelSize: Style.font.title }
+          Ink { text: "OMARCHY  /  HYPRLAND  /  " + root.kernel; toneZone: "headerLeft"; quiet: true; font.pixelSize: Style.font.caption }
+          Ink { text: root.processor; toneZone: "headerLeft"; quiet: true; font.pixelSize: Style.font.caption; elide: Text.ElideRight; Layout.fillWidth: true }
         }
 
         Metric {
@@ -326,15 +352,16 @@ Item {
 
         RowLayout {
           Layout.fillWidth: true
-          Ink { text: "UPTIME"; color: root.quietInk; font.pixelSize: Style.font.caption; font.bold: true }
+          Ink { text: "UPTIME"; toneZone: "footerLeft"; quiet: true; font.pixelSize: Style.font.caption; font.bold: true }
           Item { Layout.fillWidth: true }
-          Ink { text: root.uptime; font.pixelSize: Style.font.body }
+          Ink { text: root.uptime; toneZone: "footerRight"; font.pixelSize: Style.font.body }
         }
 
         ContrastRule {
           Layout.fillWidth: true
           Layout.topMargin: Style.space(4)
-          lineColor: root.faintInk
+          leftZone: "footerLeft"
+          rightZone: "footerRight"
         }
 
         GridLayout {
@@ -343,28 +370,32 @@ Item {
           columnSpacing: Style.space(18)
           rowSpacing: Style.space(4)
 
-          Hint { keys: "SUPER + RETURN"; action: "terminal" }
-          Hint { keys: "SUPER + SPACE"; action: "menu" }
-          Hint { keys: "SUPER + 1…9"; action: "workspace" }
-          Hint { keys: "SUPER + Q"; action: "close" }
-          Hint { keys: "RIGHT CLICK"; action: "omacrunch" }
-          Hint { keys: "SUPER + K"; action: "all keys" }
+          Hint { keys: "SUPER + RETURN"; action: "terminal"; toneZone: "footerLeft" }
+          Hint { keys: "SUPER + SPACE"; action: "menu"; toneZone: "footerRight" }
+          Hint { keys: "SUPER + 1…9"; action: "workspace"; toneZone: "footerLeft" }
+          Hint { keys: "SUPER + Q"; action: "close"; toneZone: "footerRight" }
+          Hint { keys: "RIGHT CLICK"; action: "omacrunch"; toneZone: "footerLeft" }
+          Hint { keys: "SUPER + K"; action: "all keys"; toneZone: "footerRight" }
         }
       }
     }
   }
 
   component Ink: Text {
-    color: root.ink
+    property string toneZone: "bodyLeft"
+    property bool quiet: false
+    color: quiet ? root.zoneQuietInk(toneZone) : root.zoneInk(toneZone)
     font.family: "monospace"
     font.pixelSize: Style.font.body
     textFormat: Text.PlainText
     style: Text.Outline
-    styleColor: root.outlineInk
+    styleColor: root.zoneOutline(toneZone)
   }
 
   component ContrastRule: Item {
-    required property color lineColor
+    id: ruleRoot
+    property string leftZone: "bodyLeft"
+    property string rightZone: "bodyRight"
     implicitHeight: Math.max(3, Style.space(3))
 
     Rectangle {
@@ -372,7 +403,11 @@ Item {
       anchors.right: parent.right
       anchors.verticalCenter: parent.verticalCenter
       height: Math.max(3, Style.space(3))
-      color: root.outlineInk
+      gradient: Gradient {
+        orientation: Gradient.Horizontal
+        GradientStop { position: 0; color: root.zoneOutline(ruleRoot.leftZone) }
+        GradientStop { position: 1; color: root.zoneOutline(ruleRoot.rightZone) }
+      }
     }
 
     Rectangle {
@@ -380,18 +415,24 @@ Item {
       anchors.right: parent.right
       anchors.verticalCenter: parent.verticalCenter
       height: Math.max(1, Style.space(1))
-      color: parent.lineColor
+      gradient: Gradient {
+        orientation: Gradient.Horizontal
+        GradientStop { position: 0; color: root.zoneFaintInk(ruleRoot.leftZone) }
+        GradientStop { position: 1; color: root.zoneFaintInk(ruleRoot.rightZone) }
+      }
     }
   }
 
   component Hint: RowLayout {
+    id: hintRoot
     required property string keys
     required property string action
+    required property string toneZone
     Layout.fillWidth: true
     spacing: Style.space(7)
 
-    Ink { text: keys; color: root.ink; font.pixelSize: Style.font.caption; font.bold: true }
-    Ink { Layout.fillWidth: true; text: action; color: root.quietInk; font.pixelSize: Style.font.caption; elide: Text.ElideRight }
+    Ink { text: keys; toneZone: hintRoot.toneZone; font.pixelSize: Style.font.caption; font.bold: true }
+    Ink { Layout.fillWidth: true; text: action; toneZone: hintRoot.toneZone; quiet: true; font.pixelSize: Style.font.caption; elide: Text.ElideRight }
   }
 
   component Metric: ColumnLayout {
@@ -405,9 +446,9 @@ Item {
 
     RowLayout {
       Layout.fillWidth: true
-      Ink { text: label; color: root.quietInk; font.pixelSize: Style.font.caption; font.bold: true }
+      Ink { text: label; toneZone: "bodyLeft"; quiet: true; font.pixelSize: Style.font.caption; font.bold: true }
       Item { Layout.fillWidth: true }
-      Ink { text: value; font.pixelSize: Style.font.body }
+      Ink { text: value; toneZone: "bodyRight"; font.pixelSize: Style.font.body }
     }
 
     Item {
@@ -417,9 +458,11 @@ Item {
       Sparkline {
         anchors.fill: parent
         samples: metricRoot.samples
-        lineColor: root.ink
-        outlineColor: root.outlineInk
-        fillColor: Util.alpha(root.ink, 0.06)
+        lineColor: root.zoneInk("bodyLeft")
+        lineColorRight: root.zoneInk("bodyRight")
+        outlineColor: root.zoneOutline("bodyLeft")
+        outlineColorRight: root.zoneOutline("bodyRight")
+        fillColor: "transparent"
       }
 
       Rectangle {
@@ -428,7 +471,11 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: parent.width * Math.max(0, Math.min(1, metricRoot.fraction))
         height: Math.max(3, Style.space(4))
-        color: root.outlineInk
+        gradient: Gradient {
+          orientation: Gradient.Horizontal
+          GradientStop { position: 0; color: root.zoneOutline("bodyLeft") }
+          GradientStop { position: 1; color: root.zoneOutline("bodyRight") }
+        }
       }
 
       Rectangle {
@@ -437,7 +484,11 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: parent.width * Math.max(0, Math.min(1, metricRoot.fraction))
         height: Math.max(1, Style.space(2))
-        color: root.ink
+        gradient: Gradient {
+          orientation: Gradient.Horizontal
+          GradientStop { position: 0; color: root.zoneInk("bodyLeft") }
+          GradientStop { position: 1; color: root.zoneInk("bodyRight") }
+        }
       }
 
       Rectangle {
@@ -445,7 +496,11 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: Math.max(3, Style.space(3))
-        color: root.outlineInk
+        gradient: Gradient {
+          orientation: Gradient.Horizontal
+          GradientStop { position: 0; color: root.zoneOutline("bodyLeft") }
+          GradientStop { position: 1; color: root.zoneOutline("bodyRight") }
+        }
       }
 
       Rectangle {
@@ -453,7 +508,11 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: Math.max(1, Style.space(1))
-        color: root.faintInk
+        gradient: Gradient {
+          orientation: Gradient.Horizontal
+          GradientStop { position: 0; color: root.zoneFaintInk("bodyLeft") }
+          GradientStop { position: 1; color: root.zoneFaintInk("bodyRight") }
+        }
       }
     }
   }

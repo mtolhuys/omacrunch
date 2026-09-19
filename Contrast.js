@@ -59,16 +59,17 @@ function analyze(pixels, lightCandidate, darkCandidate) {
   var dark = colorLuminance(darkCandidate)
   luminances.sort(function(left, right) { return left - right })
   var low = percentile(luminances, 0.05)
+  var median = percentile(luminances, 0.50)
   var high = percentile(luminances, 0.95)
   var spread = high - low
   var target = 4.5
   var lightOpacity = requiredBlackScrim(light, high, target)
   var darkOpacity = requiredWhiteScrim(dark, low, target)
 
-  // Pick the ink/opposite-colour halo pair that would need the least help at
-  // the two luminance extremes. The halo is local to glyphs and graph lines:
-  // unlike a translucent card, it cannot turn half the wallpaper grey.
-  var useLight = lightOpacity <= darkOpacity
+  // Pick the ink for the representative local tone. The opposite-colour halo
+  // handles the minority extreme; letting one bright object dictate the ink
+  // for a mostly dark region is exactly what made mixed wallpapers look hollow.
+  var useLight = contrast(light, median) >= contrast(dark, median)
   var ratios = []
   var textLuminance = useLight ? light : dark
   for (var j = 0; j < luminances.length; j++) {
@@ -76,15 +77,17 @@ function analyze(pixels, lightCandidate, darkCandidate) {
   }
   ratios.sort(function(left, right) { return left - right })
   var minimumContrast = percentile(ratios, 0.05)
-  var haloOpacity = minimumContrast < 7 || spread > 0.18
-    ? clamp(0.78 + spread * 0.16, 0.78, 0.96)
-    : 0.58
+  var haloOpacity = minimumContrast < 4.5 || spread > 0.18
+    ? clamp(0.42 + spread * 0.18, 0.42, 0.64)
+    : 0.24
 
   return {
     useLight: useLight,
     scrimOpacity: 0,
     haloOpacity: haloOpacity,
     spread: spread,
-    minimumContrast: minimumContrast
+    minimumContrast: minimumContrast,
+    medianLuminance: median,
+    requiredExtremeOpacity: useLight ? lightOpacity : darkOpacity
   }
 }

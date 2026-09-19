@@ -30,7 +30,8 @@ assert.equal(onWhite.scrimOpacity, 0)
 const mixed = context.analyze(pixels([[0, 0, 0], [150, 235, 210], [255, 255, 255]]), light, dark)
 assert.equal(mixed.useLight, false)
 assert.equal(mixed.scrimOpacity, 0)
-assert.ok(mixed.haloOpacity >= 0.90, `mixed wallpaper halo was only ${mixed.haloOpacity}`)
+assert.ok(mixed.haloOpacity >= 0.42, `mixed wallpaper halo was only ${mixed.haloOpacity}`)
+assert.ok(mixed.haloOpacity <= 0.64, `mixed wallpaper halo was too heavy at ${mixed.haloOpacity}`)
 assert.ok(mixed.spread > 0.5)
 assert.ok(mixed.minimumContrast < 4.5, "mixed wallpaper should exercise the local halo path")
 
@@ -39,8 +40,22 @@ const fiery = context.analyze(
   light,
   dark
 )
-assert.equal(fiery.useLight, false)
+assert.equal(fiery.useLight, true)
 assert.equal(fiery.scrimOpacity, 0)
-assert.ok(fiery.haloOpacity >= 0.80, `fiery wallpaper halo was only ${fiery.haloOpacity}`)
+assert.ok(fiery.haloOpacity >= 0.42, `fiery wallpaper halo was only ${fiery.haloOpacity}`)
+
+const mostlyDark = context.analyze(
+  pixels([[0, 0, 0], [8, 8, 8], [16, 16, 16], [30, 30, 30], [255, 255, 255]]),
+  light,
+  dark
+)
+assert.equal(mostlyDark.useLight, true, "one bright object must not flip a dark region to dark ink")
+
+const mostlyLight = context.analyze(
+  pixels([[255, 255, 255], [245, 245, 245], [230, 230, 230], [210, 210, 210], [0, 0, 0]]),
+  light,
+  dark
+)
+assert.equal(mostlyLight.useLight, false, "one dark object must not flip a light region to light ink")
 
 console.log("contrast: ok")

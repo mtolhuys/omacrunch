@@ -44,12 +44,14 @@ assert.match(makefile, /omarchy-shell omacrunch toneDebug/)
 assert.match(makefile, /wallpaper lifecycle: initial -> refreshed/)
 assert.match(service, /function\s+refreshTone\s*\(\):\s*string/)
 assert.match(service, /style:\s*Text\.Outline/)
-assert.match(service, /outlineColor:\s*root\.outlineInk/)
+assert.match(service, /outlineColorRight:\s*root\.zoneOutline\("bodyRight"\)/)
 assert.match(service, /component\s+ContrastRule:/)
 assert.doesNotMatch(service, /color:\s*Util\.alpha\(root\.scrimColor/)
+assert.match(service, /toneZone:\s*"bodyRight"/)
+assert.match(service, /onZonesChanged:\s*root\.wallpaperZones\s*=\s*zones/)
 assert.match(
   fs.readFileSync(path.join(__dirname, "..", "WallpaperTone.qml"), "utf8"),
-  /histogramPixels\.length\s*>=\s*10240/
+  /gridPixels\.length\s*>=\s*216/
 )
 
 console.log("contracts: ok")
