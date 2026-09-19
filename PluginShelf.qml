@@ -16,6 +16,7 @@ Item {
   property real dragOffset: 0
   property real markerX: 0
   property bool validDrop: false
+  property string lastGesture: "idle"
   readonly property bool expanded: entryIds.length > 0 && (pinned || peek || panelHeld || arranging)
   readonly property bool orderReady: hostBar.pluginOrderStore.loaded && !hostBar.pluginOrderStore.saving
   readonly property bool overflow: widgetsRow.width > Math.max(0, openWidth - handleWidth - 8) + 1
@@ -65,9 +66,10 @@ Item {
   }
 
   function startDrag(point) {
-    if (!arranging || !orderReady || panelHeld) return
+    lastGesture = "press:" + Math.round(point)
+    if (!arranging || !orderReady || panelHeld) { lastGesture += ":blocked"; return }
     var item = hostAt(point + viewport.contentX)
-    if (!item) return
+    if (!item) { lastGesture += ":no-item"; return }
     dragId = item.entryId
     dragOffset = point + viewport.contentX - item.x
     updateDrag(point, height / 2)
@@ -96,6 +98,7 @@ Item {
   function finishDrag(moved) {
     var next = ShelfModel.moveId(entryIds, dragId, dropBeforeId)
     var save = moved && validDrop && !ShelfModel.sameIds(next, entryIds)
+    lastGesture = "release:" + dragId + ":moved=" + moved + ":valid=" + validDrop + ":save=" + save
     cancelDrag()
     if (save) hostBar.savePluginOrder(next)
   }
@@ -118,7 +121,11 @@ Item {
   }
 
   function state() {
+    var inputPoint = arrangeMouse.mapToItem(shelf, 0, 0)
     return { screen: screenName, ids: entryIds, expanded: expanded, pinned: pinned,
+      gesture: lastGesture, input: {x: shelf.x + inputPoint.x, y: inputPoint.y,
+        width: arrangeMouse.width, height: arrangeMouse.height,
+        enabled: arrangeMouse.enabled, visible: arrangeMouse.visible, pressed: arrangeMouse.pressed},
       arranging: arranging, dragging: dragId, orderReady: orderReady,
       orderError: hostBar.pluginOrderStore.error,
       held: panelHeld, overflow: overflow, width: Math.round(capsule.width),
