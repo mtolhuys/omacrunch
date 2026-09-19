@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2 - 2026-09-19
+
+- Use neutral light and dark telemetry ink instead of potentially clashing
+  theme accent colours.
+- Calculate scrim opacity from the contrast target after compositing, using
+  the 5th and 95th percentile wallpaper luminance.
+- Choose the ink-and-veil pairing that meets the contrast target with the
+  least wallpaper coverage, with a regression palette for fiery backgrounds.
+
 ## 0.3.1 - 2026-09-19
 
 - Replace the compositor-dependent Canvas sampler with a bounded 16-colour

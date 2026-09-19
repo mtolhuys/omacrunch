@@ -156,7 +156,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.3.1",
+        version: manifest && manifest.version ? String(manifest.version) : "0.3.2",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
@@ -228,8 +228,10 @@ Item {
           monitorColumn.width + Style.space(44),
           monitorColumn.implicitHeight + Style.space(36)
         )
-        lightCandidate: Color.foreground
-        darkCandidate: Color.background
+        // Wallpaper legibility must not depend on a theme accent that can
+        // clash with the image (cyan over orange is a common failure mode).
+        lightCandidate: "#f2f2f2"
+        darkCandidate: "#111111"
         onInkChanged: root.ink = ink
         onScrimColorChanged: root.scrimColor = scrimColor
         onScrimOpacityChanged: root.scrimOpacity = scrimOpacity

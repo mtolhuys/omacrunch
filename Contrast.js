@@ -32,6 +32,24 @@ function percentile(sorted, fraction) {
   return sorted[Math.min(sorted.length - 1, Math.floor(fraction * (sorted.length - 1)))]
 }
 
+function requiredBlackScrim(text, background, target) {
+  var maximumBackground = (text + 0.05) / target - 0.05
+  if (background <= maximumBackground || background <= 0) return 0
+  return 1 - maximumBackground / background
+}
+
+function requiredWhiteScrim(text, background, target) {
+  var minimumBackground = target * (text + 0.05) - 0.05
+  if (background >= minimumBackground || background >= 1) return 0
+  return (minimumBackground - background) / (1 - background)
+}
+
+function compositeLuminance(background, useLight, opacity) {
+  return useLight
+    ? background * (1 - opacity)
+    : background + (1 - background) * opacity
+}
+
 function analyze(pixels, lightCandidate, darkCandidate) {
   var luminances = []
   for (var i = 0; i + 3 < pixels.length; i += 4) {
@@ -45,24 +63,30 @@ function analyze(pixels, lightCandidate, darkCandidate) {
 
   var light = colorLuminance(lightCandidate)
   var dark = colorLuminance(darkCandidate)
-  var lightRatios = []
-  var darkRatios = []
   luminances.sort(function(left, right) { return left - right })
-  for (var j = 0; j < luminances.length; j++) {
-    lightRatios.push(contrast(light, luminances[j]))
-    darkRatios.push(contrast(dark, luminances[j]))
-  }
-  lightRatios.sort(function(left, right) { return left - right })
-  darkRatios.sort(function(left, right) { return left - right })
+  var low = percentile(luminances, 0.05)
+  var high = percentile(luminances, 0.95)
+  var spread = high - low
+  var target = 4.5
+  var lightOpacity = requiredBlackScrim(light, high, target)
+  var darkOpacity = requiredWhiteScrim(dark, low, target)
 
-  var lightFloor = percentile(lightRatios, 0.10)
-  var darkFloor = percentile(darkRatios, 0.10)
-  var useLight = lightFloor >= darkFloor
-  var minimumContrast = useLight ? lightFloor : darkFloor
-  var spread = percentile(luminances, 0.90) - percentile(luminances, 0.10)
-  var contrastDebt = clamp((4.5 - minimumContrast) / 4.5, 0, 1)
-  var mixedBackground = clamp((spread - 0.18) / 0.55, 0, 1)
-  var scrimOpacity = clamp(contrastDebt * 0.42 + mixedBackground * 0.30, 0, 0.52)
+  // Pick the ink/scrim pair that reaches the contrast target with the least
+  // wallpaper coverage. Mixed fiery scenes usually need dark ink on a light
+  // veil; night scenes naturally choose light ink on a dark veil.
+  var useLight = lightOpacity <= darkOpacity
+  var requiredOpacity = useLight ? lightOpacity : darkOpacity
+  var scrimOpacity = requiredOpacity > 0
+    ? clamp(requiredOpacity + 0.06, 0, 0.90)
+    : 0
+  var ratios = []
+  var textLuminance = useLight ? light : dark
+  for (var j = 0; j < luminances.length; j++) {
+    var composited = compositeLuminance(luminances[j], useLight, scrimOpacity)
+    ratios.push(contrast(textLuminance, composited))
+  }
+  ratios.sort(function(left, right) { return left - right })
+  var minimumContrast = percentile(ratios, 0.05)
 
   return {
     useLight: useLight,

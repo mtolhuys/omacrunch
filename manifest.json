@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.mtolhuys.omacrunch",
   "name": "Omacrunch",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Maarten Tolhuijs",
   "license": "MIT",
   "description": "A barless CrunchBang-inspired Omarchy desktop with live wallpaper telemetry and a clean root menu.",

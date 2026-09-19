@@ -28,7 +28,20 @@ assert.equal(onWhite.useLight, false)
 assert.equal(onWhite.scrimOpacity, 0)
 
 const mixed = context.analyze(pixels([[0, 0, 0], [150, 235, 210], [255, 255, 255]]), light, dark)
-assert.ok(mixed.scrimOpacity >= 0.25, `mixed wallpaper scrim was only ${mixed.scrimOpacity}`)
+assert.equal(mixed.useLight, false)
+assert.ok(mixed.scrimOpacity >= 0.20, `mixed wallpaper scrim was only ${mixed.scrimOpacity}`)
+assert.ok(mixed.scrimOpacity <= 0.40, `mixed wallpaper scrim was too heavy at ${mixed.scrimOpacity}`)
 assert.ok(mixed.spread > 0.5)
+assert.ok(mixed.minimumContrast >= 4.5, `mixed wallpaper contrast was only ${mixed.minimumContrast}`)
+
+const fiery = context.analyze(
+  pixels([[18, 3, 12], [92, 10, 18], [240, 45, 4], [255, 205, 8]]),
+  light,
+  dark
+)
+assert.equal(fiery.useLight, false)
+assert.ok(fiery.scrimOpacity >= 0.20, `fiery wallpaper scrim was only ${fiery.scrimOpacity}`)
+assert.ok(fiery.scrimOpacity <= 0.40, `fiery wallpaper scrim was too heavy at ${fiery.scrimOpacity}`)
+assert.ok(fiery.minimumContrast >= 4.5, `fiery wallpaper contrast was only ${fiery.minimumContrast}`)
 
 console.log("contrast: ok")
