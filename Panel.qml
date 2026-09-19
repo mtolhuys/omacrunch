@@ -21,7 +21,7 @@ Item {
     { key: "F", label: "Files", detail: "Browse the filesystem" },
     { key: "W", label: "Web", detail: "Open the default browser" },
     { key: "A", label: "Applications", detail: "Search installed applications" },
-    { key: "K", label: "Keybindings", detail: "Show the Omarchy shortcut map" },
+    { key: "H", label: "Hotkeys", detail: "Show the Omarchy shortcut map" },
     { key: "P", label: "Power", detail: "Lock, sleep, restart or shut down" }
   ]
   readonly property var shortcuts: [
@@ -142,8 +142,8 @@ Item {
       BorderSurface {
         id: card
 
-        width: Math.min(Style.space(760), overlay.width - Style.gapsOut * 2)
-        height: Math.min(Style.space(610), overlay.height - Style.gapsOut * 2)
+        width: Math.max(0, Math.min(Style.space(760), overlay.width - Style.gapsOut * 2))
+        height: Math.max(0, Math.min(Style.space(610), overlay.height - Style.gapsOut * 2))
         anchors.centerIn: parent
         color: Color.menu.background
         borderSpec: Border.surfaceSpec("menu", "border", Color.menu.border, Math.max(1, Style.space(1)))
@@ -151,7 +151,7 @@ Item {
 
         MouseArea {
           anchors.fill: parent
-          acceptedButtons: Qt.NoButton
+          acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         }
 
         RowLayout {
