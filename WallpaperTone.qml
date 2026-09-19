@@ -16,8 +16,9 @@ Item {
   property color lightCandidate: "#f2f2f2"
   property color darkCandidate: "#111111"
   property color ink: lightCandidate
-  property color scrimColor: "#000000"
-  property real scrimOpacity: 0.18
+  property color haloColor: "#000000"
+  property real haloOpacity: 0.94
+  property real scrimOpacity: 0
   property real measuredContrast: 1
   property real measuredSpread: 1
   property bool analyzed: false
@@ -71,7 +72,8 @@ Item {
 
     var result = Contrast.analyze(histogramPixels, lightCandidate, darkCandidate)
     ink = result.useLight ? lightCandidate : darkCandidate
-    scrimColor = result.useLight ? "#000000" : "#ffffff"
+    haloColor = result.useLight ? "#000000" : "#ffffff"
+    haloOpacity = result.haloOpacity
     scrimOpacity = result.scrimOpacity
     measuredContrast = result.minimumContrast
     measuredSpread = result.spread

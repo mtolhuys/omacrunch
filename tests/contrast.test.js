@@ -29,10 +29,10 @@ assert.equal(onWhite.scrimOpacity, 0)
 
 const mixed = context.analyze(pixels([[0, 0, 0], [150, 235, 210], [255, 255, 255]]), light, dark)
 assert.equal(mixed.useLight, false)
-assert.ok(mixed.scrimOpacity >= 0.20, `mixed wallpaper scrim was only ${mixed.scrimOpacity}`)
-assert.ok(mixed.scrimOpacity <= 0.40, `mixed wallpaper scrim was too heavy at ${mixed.scrimOpacity}`)
+assert.equal(mixed.scrimOpacity, 0)
+assert.ok(mixed.haloOpacity >= 0.90, `mixed wallpaper halo was only ${mixed.haloOpacity}`)
 assert.ok(mixed.spread > 0.5)
-assert.ok(mixed.minimumContrast >= 4.5, `mixed wallpaper contrast was only ${mixed.minimumContrast}`)
+assert.ok(mixed.minimumContrast < 4.5, "mixed wallpaper should exercise the local halo path")
 
 const fiery = context.analyze(
   pixels([[18, 3, 12], [92, 10, 18], [240, 45, 4], [255, 205, 8]]),
@@ -40,8 +40,7 @@ const fiery = context.analyze(
   dark
 )
 assert.equal(fiery.useLight, false)
-assert.ok(fiery.scrimOpacity >= 0.20, `fiery wallpaper scrim was only ${fiery.scrimOpacity}`)
-assert.ok(fiery.scrimOpacity <= 0.40, `fiery wallpaper scrim was too heavy at ${fiery.scrimOpacity}`)
-assert.ok(fiery.minimumContrast >= 4.5, `fiery wallpaper contrast was only ${fiery.minimumContrast}`)
+assert.equal(fiery.scrimOpacity, 0)
+assert.ok(fiery.haloOpacity >= 0.80, `fiery wallpaper halo was only ${fiery.haloOpacity}`)
 
 console.log("contrast: ok")

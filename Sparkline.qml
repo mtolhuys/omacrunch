@@ -6,11 +6,13 @@ Canvas {
 
   property var samples: []
   property color lineColor: Color.foreground
+  property color outlineColor: "transparent"
   property color fillColor: Util.alpha(lineColor, 0.12)
   property real maximum: 100
 
   onSamplesChanged: requestPaint()
   onLineColorChanged: requestPaint()
+  onOutlineColorChanged: requestPaint()
   onWidthChanged: requestPaint()
   onHeightChanged: requestPaint()
 
@@ -38,6 +40,9 @@ Canvas {
       if (j === 0) ctx.moveTo(0, lineY)
       else ctx.lineTo(j * step, lineY)
     }
+    ctx.strokeStyle = root.outlineColor
+    ctx.lineWidth = Math.max(3, Screen.devicePixelRatio * 3)
+    ctx.stroke()
     ctx.strokeStyle = root.lineColor
     ctx.lineWidth = Math.max(1, Screen.devicePixelRatio)
     ctx.stroke()

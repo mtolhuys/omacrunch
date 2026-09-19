@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1 - 2026-09-20
+
+- Remove the large adaptive backdrop that turned mixed wallpapers into a grey
+  rectangle behind the monitor.
+- Give text, sparklines, progress bars and dividers a wallpaper-aware local
+  contrast halo, preserving legibility over light/dark split imagery without
+  hiding the wallpaper.
+- Strengthen secondary labels now that their contrast no longer depends on a
+  shared translucent surface.
+
 ## 0.4.0 - 2026-09-20
 
 - Replace the deliberately empty bar provider with a 30-pixel CrunchBang++

@@ -34,15 +34,16 @@ Item {
   property var networkHistory: []
 
   property color ink: Color.foreground
-  property color scrimColor: Color.background
-  property real scrimOpacity: 0.18
+  property color haloColor: Color.background
+  property real haloOpacity: 0.94
+  property real scrimOpacity: 0
   property real wallpaperContrast: 1
   property real wallpaperSpread: 1
   property bool wallpaperAnalyzed: false
   property int wallpaperAnalysisAttempts: 0
-  readonly property color quietInk: Util.alpha(ink, 0.60)
-  readonly property color faintInk: Util.alpha(ink, 0.26)
-  readonly property color outlineInk: Util.alpha(scrimColor, 0.86)
+  readonly property color quietInk: Util.alpha(ink, 0.78)
+  readonly property color faintInk: Util.alpha(ink, 0.42)
+  readonly property color outlineInk: Util.alpha(haloColor, haloOpacity)
 
   function refresh() {
     cpuFile.reload()
@@ -156,7 +157,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.4.0",
+        version: manifest && manifest.version ? String(manifest.version) : "0.4.1",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
@@ -165,7 +166,8 @@ Item {
         wallpaperInk: String(root.ink),
         wallpaperContrast: Number(root.wallpaperContrast.toFixed(2)),
         wallpaperSpread: Number(root.wallpaperSpread.toFixed(2)),
-        scrimOpacity: Number(root.scrimOpacity.toFixed(2))
+        scrimOpacity: Number(root.scrimOpacity.toFixed(2)),
+        haloOpacity: Number(root.haloOpacity.toFixed(2))
       })
     }
 
@@ -233,7 +235,8 @@ Item {
         lightCandidate: "#f2f2f2"
         darkCandidate: "#111111"
         onInkChanged: root.ink = ink
-        onScrimColorChanged: root.scrimColor = scrimColor
+        onHaloColorChanged: root.haloColor = haloColor
+        onHaloOpacityChanged: root.haloOpacity = haloOpacity
         onScrimOpacityChanged: root.scrimOpacity = scrimOpacity
         onMeasuredContrastChanged: root.wallpaperContrast = measuredContrast
         onMeasuredSpreadChanged: root.wallpaperSpread = measuredSpread
@@ -249,16 +252,6 @@ Item {
           root.openMenu(mouse.x, mouse.y)
           mouse.accepted = true
         }
-      }
-
-      Rectangle {
-        z: 1
-        x: monitorColumn.x - Style.space(22)
-        y: monitorColumn.y - Style.space(18)
-        width: monitorColumn.width + Style.space(44)
-        height: monitorColumn.implicitHeight + Style.space(36)
-        color: Util.alpha(root.scrimColor, root.scrimOpacity)
-        radius: 0
       }
 
       ColumnLayout {
@@ -289,10 +282,9 @@ Item {
           }
         }
 
-        Rectangle {
+        ContrastRule {
           Layout.fillWidth: true
-          Layout.preferredHeight: Math.max(1, Style.space(1))
-          color: root.faintInk
+          lineColor: root.faintInk
         }
 
         ColumnLayout {
@@ -339,11 +331,10 @@ Item {
           Ink { text: root.uptime; font.pixelSize: Style.font.body }
         }
 
-        Rectangle {
+        ContrastRule {
           Layout.fillWidth: true
-          Layout.preferredHeight: Math.max(1, Style.space(1))
           Layout.topMargin: Style.space(4)
-          color: root.faintInk
+          lineColor: root.faintInk
         }
 
         GridLayout {
@@ -368,8 +359,29 @@ Item {
     font.family: "monospace"
     font.pixelSize: Style.font.body
     textFormat: Text.PlainText
-    style: root.scrimOpacity < 0.08 ? Text.Outline : Text.Normal
+    style: Text.Outline
     styleColor: root.outlineInk
+  }
+
+  component ContrastRule: Item {
+    required property color lineColor
+    implicitHeight: Math.max(3, Style.space(3))
+
+    Rectangle {
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      height: Math.max(3, Style.space(3))
+      color: root.outlineInk
+    }
+
+    Rectangle {
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      height: Math.max(1, Style.space(1))
+      color: parent.lineColor
+    }
   }
 
   component Hint: RowLayout {
@@ -406,6 +418,17 @@ Item {
         anchors.fill: parent
         samples: metricRoot.samples
         lineColor: root.ink
+        outlineColor: root.outlineInk
+        fillColor: Util.alpha(root.ink, 0.06)
+      }
+
+      Rectangle {
+        visible: metricRoot.samples.length < 2
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        width: parent.width * Math.max(0, Math.min(1, metricRoot.fraction))
+        height: Math.max(3, Style.space(4))
+        color: root.outlineInk
       }
 
       Rectangle {
@@ -415,6 +438,14 @@ Item {
         width: parent.width * Math.max(0, Math.min(1, metricRoot.fraction))
         height: Math.max(1, Style.space(2))
         color: root.ink
+      }
+
+      Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: Math.max(3, Style.space(3))
+        color: root.outlineInk
       }
 
       Rectangle {

@@ -44,12 +44,6 @@ function requiredWhiteScrim(text, background, target) {
   return (minimumBackground - background) / (1 - background)
 }
 
-function compositeLuminance(background, useLight, opacity) {
-  return useLight
-    ? background * (1 - opacity)
-    : background + (1 - background) * opacity
-}
-
 function analyze(pixels, lightCandidate, darkCandidate) {
   var luminances = []
   for (var i = 0; i + 3 < pixels.length; i += 4) {
@@ -59,7 +53,7 @@ function analyze(pixels, lightCandidate, darkCandidate) {
       + 0.0722 * channel(pixels[i + 2] / 255))
   }
   if (!luminances.length)
-    return { useLight: true, scrimOpacity: 0.18, spread: 1, minimumContrast: 1 }
+    return { useLight: true, scrimOpacity: 0, haloOpacity: 0.94, spread: 1, minimumContrast: 1 }
 
   var light = colorLuminance(lightCandidate)
   var dark = colorLuminance(darkCandidate)
@@ -71,26 +65,25 @@ function analyze(pixels, lightCandidate, darkCandidate) {
   var lightOpacity = requiredBlackScrim(light, high, target)
   var darkOpacity = requiredWhiteScrim(dark, low, target)
 
-  // Pick the ink/scrim pair that reaches the contrast target with the least
-  // wallpaper coverage. Mixed fiery scenes usually need dark ink on a light
-  // veil; night scenes naturally choose light ink on a dark veil.
+  // Pick the ink/opposite-colour halo pair that would need the least help at
+  // the two luminance extremes. The halo is local to glyphs and graph lines:
+  // unlike a translucent card, it cannot turn half the wallpaper grey.
   var useLight = lightOpacity <= darkOpacity
-  var requiredOpacity = useLight ? lightOpacity : darkOpacity
-  var scrimOpacity = requiredOpacity > 0
-    ? clamp(requiredOpacity + 0.06, 0, 0.90)
-    : 0
   var ratios = []
   var textLuminance = useLight ? light : dark
   for (var j = 0; j < luminances.length; j++) {
-    var composited = compositeLuminance(luminances[j], useLight, scrimOpacity)
-    ratios.push(contrast(textLuminance, composited))
+    ratios.push(contrast(textLuminance, luminances[j]))
   }
   ratios.sort(function(left, right) { return left - right })
   var minimumContrast = percentile(ratios, 0.05)
+  var haloOpacity = minimumContrast < 7 || spread > 0.18
+    ? clamp(0.78 + spread * 0.16, 0.78, 0.96)
+    : 0.58
 
   return {
     useLight: useLight,
-    scrimOpacity: scrimOpacity,
+    scrimOpacity: 0,
+    haloOpacity: haloOpacity,
     spread: spread,
     minimumContrast: minimumContrast
   }

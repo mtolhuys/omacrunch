@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.4.0` provides:
+Version `0.4.1` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -18,7 +18,7 @@ Version `0.4.0` provides:
 - compact history graphs, host information, clock, date and shortcut hints;
 - one telemetry surface per monitor;
 - wallpaper-aware foreground selection based on the pixels beneath the monitor;
-- an automatic low-profile contrast layer for busy or mixed-tone wallpapers;
+- local opposite-colour halos for text and graphs, without covering the wallpaper with a contrast card;
 - a sharp, monochrome root menu on right-click;
 - theme-derived bar colours plus wallpaper-derived monitor contrast;
 - no background daemon, network access, state files or privileged commands.
