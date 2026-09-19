@@ -148,6 +148,21 @@ Item {
     return result
   }
 
+  function widgetMetrics() {
+    return liveWidgets.map(function(record) {
+      var item = record.item
+      return {
+        id: record.id,
+        screen: record.screenName,
+        visible: !!item && item.visible !== false,
+        width: item ? Math.round(Number(item.width || 0)) : 0,
+        implicitWidth: item ? Math.round(Number(item.implicitWidth || 0)) : 0,
+        height: item ? Math.round(Number(item.height || 0)) : 0,
+        implicitHeight: item ? Math.round(Number(item.implicitHeight || 0)) : 0
+      }
+    })
+  }
+
   function focusedScreenName() {
     return Hyprland.focusedMonitor ? String(Hyprland.focusedMonitor.name || "") : ""
   }
@@ -331,6 +346,7 @@ Item {
         workspaces: root.workspaceIds().length,
         clients: Hyprland.toplevels.values.length,
         widgets: root.liveWidgets.length,
+        widgetMetrics: root.widgetMetrics(),
         focusedWorkspace: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
       })
     }
