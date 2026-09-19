@@ -669,7 +669,7 @@ Item {
 
                 Text {
                   anchors.centerIn: parent
-                  text: statusSlot.trayExpanded ? "\uf053" : "\uf054"
+                  text: statusSlot.trayExpanded ? "\u2039" : "\u203a"
                   color: root.foreground
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.body
