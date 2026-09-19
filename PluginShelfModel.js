@@ -35,4 +35,42 @@ function sameIds(first, second) {
   })
 }
 
-if (typeof module !== "undefined") module.exports = { entries: entries, sameIds: sameIds }
+function normalizeOrder(value) {
+  var seen = Object.create(null)
+  return (Array.isArray(value) ? value : []).slice(0, 512).filter(function(id) {
+    if (typeof id !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,199}$/.test(id) || seen[id]) return false
+    seen[id] = true
+    return true
+  })
+}
+
+function orderedEntries(values, order) {
+  var ranks = normalizeOrder(order)
+  // Unseen plugins append in configured order; disabled plugins keep their
+  // remembered position without becoming enabled or loaded by this preference.
+  return values.filter(function(entry) { return ranks.indexOf(entry.id) >= 0 })
+    .sort(function(a, b) { return ranks.indexOf(a.id) - ranks.indexOf(b.id) })
+    .concat(values.filter(function(entry) { return ranks.indexOf(entry.id) < 0 }))
+}
+
+function mergeOrder(saved, visible) {
+  var next = normalizeOrder(visible), index = 0
+  var result = normalizeOrder(saved).map(function(id) {
+    return next.indexOf(id) >= 0 ? next[index++] : id
+  })
+  return normalizeOrder(result.concat(next.slice(index)))
+}
+
+function moveId(ids, id, beforeId) {
+  var result = ids.slice()
+  if (result.indexOf(id) < 0 || id === beforeId
+      || (beforeId && result.indexOf(beforeId) < 0)) return result
+  result.splice(result.indexOf(id), 1)
+  result.splice(beforeId ? result.indexOf(beforeId) : result.length, 0, id)
+  return result
+}
+
+if (typeof module !== "undefined") module.exports = {
+  entries: entries, sameIds: sameIds, normalizeOrder: normalizeOrder,
+  orderedEntries: orderedEntries, mergeOrder: mergeOrder, moveId: moveId
+}

@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.6.3` provides:
+Version `0.7.0` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -65,8 +65,24 @@ middle. The handle stays fixed and the widgets reveal to its left; their panel
 anchors stay fixed during animation too. Hover for 110 ms to reveal it;
 moving away gives you 450 ms of
 grace before it fades closed. Left-click the handle to pin/unpin it for this
-session; right-click returns to auto-hide. A pinned handle becomes three small
+session; right-click enters arrange mode. A pinned handle becomes three small
 bars with an underline. Each monitor has its own reveal/pin state.
+
+To reorder: **right-click the three dots**, then drag an icon to the insertion
+line and release. Click **✓** to finish. Normal clicks, wheels and plugin
+gestures are untouched outside arrange mode; in that mode they cannot
+accidentally launch a plugin. Close open plugin panels before arranging.
+Dropping outside the strip cancels the move. A registry change cancels an
+in-progress drag. Narrow bars scroll automatically when dragging at an edge.
+
+Every successful drop saves a shared order for all monitors, surviving shell
+reloads, updates and uninstall/reinstall. Only
+`$XDG_STATE_HOME/omarchy/omacrunch/plugin-order.json` (normally
+`~/.local/state/omarchy/omacrunch/plugin-order.json`) is written; neither
+`shell.json` nor third-party settings are changed. Disabled plugins retain
+their position; new plugins append. On save failure the previous order returns
+and the handle shows **!** with an explanatory tooltip. The order store creates
+its directory only on a drop; no background polling is added.
 
 An open widget panel keeps the shelf and its anchor in place until it closes.
 Widgets stay mounted while concealed, so hover does not reset their state or
@@ -76,11 +92,12 @@ scrolling is held while a plugin panel is open. Workspace/status space is kept
 separate, and an empty shelf has no handle.
 
 Only **enabled external bar widgets already in Omarchy's bar layout** appear.
-Their existing settings and left → center → right order are preserved, with
+Their existing settings and initial left → center → right order are preserved, with
 duplicate IDs shown once. Built-in widgets, Omacrunch itself, disabled plugins
 and unconfigured entries are excluded. Configure them in Omarchy's existing
 bar/plugin settings; Omacrunch does not enable, install or update those plugins.
-Settings-only changes, reordering and incremental registry arrivals do not
+An explicit drag order overrides that initial order. Settings-only changes,
+reordering and incremental registry arrivals do not
 recreate existing widgets. Disabling/removing a
 widget releases its click targets and open popout.
 

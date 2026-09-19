@@ -51,9 +51,14 @@ Item {
   property string tooltipText: ""
   property bool tooltipShown: false
 
-  readonly property var pluginEntries: ShelfModel.entries(barConfig,
+  readonly property var configuredPluginEntries: ShelfModel.entries(barConfig,
     barWidgetRegistry ? barWidgetRegistry.widgets : {}, pluginId,
     pluginRegistry ? pluginRegistry.installedPlugins : {})
+  readonly property var pluginEntries: ShelfModel.orderedEntries(configuredPluginEntries, pluginOrder.order)
+  readonly property alias pluginOrderStore: pluginOrder
+  PluginOrderStore { id: pluginOrder }
+
+  function savePluginOrder(ids) { return pluginOrder.save(ids) }
 
   readonly property var statusModules: [
     { id: "omarchy.tray", region: "right" },
@@ -87,10 +92,12 @@ Item {
   }
 
   function switchPluginPanel(id, screenName, direction) {
-    var panels = liveWidgets.filter(function(record) {
-      return record.region === "center" && record.screenName === screenName && record.item
-        && typeof record.item.open === "function" && typeof record.item.close === "function"
-    })
+    var panels = pluginEntries.map(function(entry) {
+      return root.liveWidgets.find(function(record) {
+        return record.id === entry.id && record.screenName === screenName && record.item
+          && typeof record.item.open === "function" && typeof record.item.close === "function"
+      })
+    }).filter(function(record) { return !!record })
     var current = panels.findIndex(function(record) { return record.id === id })
     if (current < 0 || panels.length < 2) return false
     panels[(current + (direction < 0 ? -1 : 1) + panels.length) % panels.length].item.open()
@@ -472,6 +479,12 @@ Item {
       if (!shelf) return "missing"
       shelf.pinned = value
       return value ? "pinned" : "auto"
+    }
+
+    function arrangePlugins(value: bool): string {
+      var shelf = root.focusedShelf()
+      if (!shelf) return "missing"
+      return shelf.setArranging(value) ? (value ? "arranging" : "normal") : "busy"
     }
   }
 

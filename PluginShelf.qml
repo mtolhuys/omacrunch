@@ -9,7 +9,15 @@ Item {
   property bool pinned: false
   property bool peek: false
   property bool panelHeld: false
-  readonly property bool expanded: entryIds.length > 0 && (pinned || peek || panelHeld)
+  property bool arranging: false
+  property string dragId: ""
+  property string dropBeforeId: ""
+  property real dragX: 0
+  property real dragOffset: 0
+  property real markerX: 0
+  property bool validDrop: false
+  readonly property bool expanded: entryIds.length > 0 && (pinned || peek || panelHeld || arranging)
+  readonly property bool orderReady: hostBar.pluginOrderStore.loaded && !hostBar.pluginOrderStore.saving
   readonly property bool overflow: widgetsRow.width > Math.max(0, openWidth - handleWidth - 8) + 1
   readonly property real handleWidth: 32
   readonly property real openWidth: Math.min(Math.max(0, width - 12), handleWidth + widgetsRow.width + 8)
@@ -19,10 +27,12 @@ Item {
   readonly property alias contentWidth: widgetsRow.width
   property real animatedWidth: expanded ? openWidth : Math.min(handleWidth, width)
   signal diagnosticsChanged()
+  onWidthChanged: cancelDrag()
 
   function syncEntries() {
     var ids = hostBar.pluginEntries.map(function(entry) { return entry.id })
     if (ShelfModel.sameIds(ids, entryIds)) return
+    cancelDrag() // A rescan, disable or another monitor's reorder invalidates a drag.
     // Registry components arrive incrementally during a shell rescan. A JS
     // array Repeater would rebuild every preceding plugin on each arrival.
     for (var removed = entriesModel.count - 1; removed >= 0; removed--)
@@ -34,6 +44,60 @@ Item {
       else if (existing !== index) entriesModel.move(existing, index, 1)
     }
     entryIds = ids
+    if (ids.length < 2) arranging = false
+  }
+
+  function setArranging(value) {
+    if (value && (!orderReady || entryIds.length < 2 || panelHeld || hostBar.activePopout)) return false
+    cancelDrag()
+    arranging = value
+    hostBar.hideTooltip(null)
+    if (!value && !hover.hovered) closeDelay.restart()
+    return true
+  }
+
+  function hostAt(point) {
+    for (var index = 0; index < hosts.count; index++) {
+      var item = hosts.itemAt(index)
+      if (item && item.width > 0 && point >= item.x && point < item.x + item.width) return item
+    }
+    return null
+  }
+
+  function startDrag(point) {
+    if (!arranging || !orderReady || panelHeld) return
+    var item = hostAt(point + viewport.contentX)
+    if (!item) return
+    dragId = item.entryId
+    dragOffset = point + viewport.contentX - item.x
+    updateDrag(point, height / 2)
+    hostBar.hideTooltip(null)
+  }
+
+  function updateDrag(point, y) {
+    if (!dragId) return
+    dragX = point + viewport.contentX - dragOffset
+    validDrop = point >= 0 && point <= viewport.width && y >= 0 && y <= height
+    dropBeforeId = ""
+    markerX = widgetsRow.width
+    for (var index = 0; index < hosts.count; index++) {
+      var item = hosts.itemAt(index)
+      if (item && item.entryId !== dragId && item.width > 0
+          && point + viewport.contentX < item.x + item.width / 2) {
+        dropBeforeId = item.entryId
+        markerX = item.x
+        break
+      }
+    }
+  }
+
+  function cancelDrag() { dragId = ""; validDrop = false }
+
+  function finishDrag(moved) {
+    var next = ShelfModel.moveId(entryIds, dragId, dropBeforeId)
+    var save = moved && validDrop && !ShelfModel.sameIds(next, entryIds)
+    cancelDrag()
+    if (save) hostBar.savePluginOrder(next)
   }
 
   function syncPanels() {
@@ -43,6 +107,7 @@ Item {
       if (item && item.panelHeld) held = true
     }
     panelHeld = held
+    if (held && arranging) setArranging(false)
     if (held) closeDelay.stop()
     else if (!hover.hovered) closeDelay.restart()
   }
@@ -54,6 +119,8 @@ Item {
 
   function state() {
     return { screen: screenName, ids: entryIds, expanded: expanded, pinned: pinned,
+      arranging: arranging, dragging: dragId, orderReady: orderReady,
+      orderError: hostBar.pluginOrderStore.error,
       held: panelHeld, overflow: overflow, width: Math.round(capsule.width),
       contentWidth: Math.round(widgetsRow.width), scroll: Math.round(viewport.contentX),
       x: Math.round(shelf.x + capsule.x),
@@ -65,6 +132,9 @@ Item {
   Connections {
     target: shelf.hostBar
     function onPluginEntriesChanged() { shelf.syncEntries() }
+    function onActivePopoutChanged() {
+      if (shelf.hostBar.activePopout && shelf.arranging) shelf.setArranging(false)
+    }
   }
   Component.onCompleted: syncEntries()
   ListModel { id: entriesModel }
@@ -74,7 +144,7 @@ Item {
   Timer {
     id: closeDelay
     interval: 450
-    onTriggered: if (!hover.hovered && !shelf.panelHeld) shelf.peek = false
+    onTriggered: if (!hover.hovered && !shelf.panelHeld && !shelf.arranging) shelf.peek = false
   }
 
   Item {
@@ -107,6 +177,7 @@ Item {
       height: parent.height
       property bool tooltipHovered: handleMouse.containsMouse
       Row {
+        visible: !shelf.arranging && !shelf.hostBar.pluginOrderStore.error
         anchors.centerIn: parent
         spacing: 3
         Repeater {
@@ -119,6 +190,14 @@ Item {
             Behavior on height { NumberAnimation { duration: 140 } }
           }
         }
+      }
+      Text {
+        anchors.centerIn: parent
+        visible: shelf.arranging || !!shelf.hostBar.pluginOrderStore.error
+        text: shelf.hostBar.pluginOrderStore.error ? "!" : "✓"
+        textFormat: Text.PlainText
+        color: shelf.hostBar.pluginOrderStore.error ? shelf.hostBar.urgent : shelf.hostBar.foreground
+        font.pixelSize: 16
       }
       Rectangle {
         anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
@@ -133,11 +212,18 @@ Item {
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: function(mouse) {
-          shelf.pinned = mouse.button === Qt.RightButton ? false : !shelf.pinned
           shelf.hostBar.hideTooltip(handleButton)
+          if (shelf.arranging) shelf.setArranging(false)
+          else if (mouse.button === Qt.RightButton) {
+            if (!shelf.setArranging(true)) shelf.hostBar.showTooltip(handleButton,
+              "Close plugin panels before arranging · at least two plugins required")
+          } else shelf.pinned = !shelf.pinned
         }
         onEntered: shelf.hostBar.showTooltip(handleButton,
-          "Plugins · " + shelf.entryIds.length + (shelf.pinned ? " · click to unpin" : " · click to pin"))
+          shelf.hostBar.pluginOrderStore.error || (shelf.arranging
+            ? "Drag plugins to reorder · release to save · click ✓ when done"
+            : "Plugins · " + shelf.entryIds.length
+              + (shelf.pinned ? " · click to unpin" : " · click to pin") + " · right-click to arrange"))
         onExited: shelf.hostBar.hideTooltip(handleButton)
       }
     }
@@ -164,25 +250,85 @@ Item {
         contentHeight: height
         clip: true
         interactive: false // never steal a plugin's click, drag or wheel gesture
-        onWidthChanged: shelf.scrollBy(0)
+        onWidthChanged: { shelf.cancelDrag(); shelf.scrollBy(0) }
         Row {
           id: widgetsRow
           height: parent.height
           spacing: 0
+          move: Transition { NumberAnimation { properties: "x"; duration: 160; easing.type: Easing.OutCubic } }
           Repeater {
             id: hosts
             model: entriesModel
             delegate: PluginWidgetHost {
+              id: pluginHost
               required property string entryId
               hostBar: shelf.hostBar
               moduleId: entryId
               screenName: shelf.screenName
               revealHeld: shelf.expanded
+              interactionBlocked: shelf.arranging
+              z: shelf.dragId === entryId ? 2 : 0
+              transform: Translate { x: shelf.dragId === pluginHost.entryId ? shelf.dragX - pluginHost.x : 0 }
               width: implicitWidth
               height: widgetsRow.height
               onPanelHeldChanged: shelf.syncPanels()
+              Rectangle {
+                anchors.fill: parent
+                anchors.margins: 2
+                visible: shelf.arranging
+                color: "transparent"
+                border.width: 1
+                border.color: shelf.hostBar.foreground
+                opacity: shelf.dragId === pluginHost.entryId ? 0.85 : 0.2
+              }
             }
             onItemRemoved: Qt.callLater(shelf.syncPanels)
+          }
+        }
+        Rectangle {
+          x: Math.max(0, Math.min(viewport.width - 2, shelf.markerX - viewport.contentX - 1))
+          y: 2; width: 2; height: parent.height - 4
+          color: shelf.hostBar.foreground
+          visible: shelf.dragId !== "" && shelf.validDrop
+          z: 5
+          parent: viewport
+        }
+        MouseArea {
+          id: arrangeMouse
+          parent: viewport
+          width: viewport.width; height: viewport.height
+          z: 10
+          enabled: shelf.arranging
+          hoverEnabled: true
+          preventStealing: true
+          cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+          property real pressX: 0
+          property bool moved: false
+          onPressed: function(mouse) { pressX = mouse.x; moved = false; shelf.startDrag(mouse.x) }
+          onPositionChanged: function(mouse) {
+            if (!pressed) return
+            if (Math.abs(mouse.x - pressX) >= 6) moved = true
+            shelf.updateDrag(mouse.x, mouse.y)
+          }
+          onReleased: function(mouse) {
+            shelf.updateDrag(mouse.x, mouse.y)
+            shelf.finishDrag(moved)
+          }
+          onCanceled: shelf.cancelDrag()
+          onWheel: function(wheel) {
+            if (shelf.dragId) return
+            shelf.scrollBy(wheel.angleDelta.y > 0 ? -60 : 60)
+            wheel.accepted = true
+          }
+        }
+        // Only runs at an overflow edge during an explicit drag; idle cost is zero.
+        Timer {
+          interval: 40; repeat: true
+          running: !!shelf.dragId && shelf.validDrop && shelf.overflow
+            && (arrangeMouse.mouseX < 18 || arrangeMouse.mouseX > viewport.width - 18)
+          onTriggered: {
+            shelf.scrollBy(arrangeMouse.mouseX < 18 ? -8 : 8)
+            shelf.updateDrag(arrangeMouse.mouseX, arrangeMouse.mouseY)
           }
         }
       }

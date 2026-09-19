@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 - 2026-09-20
+
+- Right-click the plugin shelf handle to arrange third-party widgets by drag
+  and drop; click the checkmark to finish without changing the pin preference.
+- Show an insertion marker and animate the move, with edge autoscroll on
+  narrow bars. Dropping outside cancels; normal plugin gestures stay intact.
+- Persist a shared order atomically in plugin-owned state, preserve disabled
+  entries, append new plugins, and roll back with visible feedback on failure.
+- Preserve mounted widget instances and align panel navigation with the new
+  order. Test mouse gestures, cancellation, multiple monitors, fresh-store
+  reload, registry changes, overflow and failed writes.
+
 ## 0.6.3 - 2026-09-20
 
 - Replace the desktop menu's `#! OMACRUNCH` heading with the native Omarchy

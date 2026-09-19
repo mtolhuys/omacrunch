@@ -8,6 +8,8 @@ Item {
   required property string moduleId
   required property string screenName
   property bool revealHeld: false
+  property bool interactionBlocked: false
+  readonly property bool acceptsInput: revealHeld && !interactionBlocked
   property bool hoverSuppressed: false
   property var ownedTargets: []
   property var ownedPopouts: []
@@ -24,8 +26,8 @@ Item {
 
   // KeyboardPanel forwards clicks through registered targets. Concealed
   // buttons must not remain clickable through a native panel's input layer.
-  onRevealHeldChanged: ownedTargets.forEach(function(target) {
-    if (revealHeld) hostBar.registerClickTarget(target)
+  onAcceptsInputChanged: ownedTargets.forEach(function(target) {
+    if (acceptsInput) hostBar.registerClickTarget(target)
     else { hostBar.unregisterClickTarget(target); hostBar.hideTooltip(target) }
   })
 
@@ -91,13 +93,13 @@ Item {
     _centerHoverRevealSuppressed: host.hoverSuppressed
     activePopout: host.ownedPopouts.indexOf(host.hostBar.activePopout) >= 0
       ? host.hostBar.activePopout : (host.hostBar.activePopout ? foreignPopoutMarker : null)
-    clickTargets: host.revealHeld ? host.ownedTargets : []
+    clickTargets: host.acceptsInput ? host.ownedTargets : []
     layoutConfig: host.hostBar.layoutConfig
     _showTooltip: function(target, text) { host.hostBar.showTooltip(target, text) }
     _hideTooltip: function(target) { host.hostBar.hideTooltip(target) }
     _registerClickTarget: function(target) {
       host.ownedTargets = host.remember(host.ownedTargets, target)
-      if (host.revealHeld) host.hostBar.registerClickTarget(target)
+      if (host.acceptsInput) host.hostBar.registerClickTarget(target)
     }
     _unregisterClickTarget: function(target) {
       host.ownedTargets = host.ownedTargets.filter(function(item) { return item !== target })
@@ -127,6 +129,7 @@ Item {
     sourceComponent: host.hostBar.widgetComponent(host.moduleId)
     width: item ? item.implicitWidth : 0
     height: host.height
+    enabled: !host.interactionBlocked
     onItemChanged: {
       host.cleanup()
       if (item) host.inject()
