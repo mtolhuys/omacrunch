@@ -132,8 +132,12 @@ Item {
       if (item) host.inject()
     }
     // Match the stock bar: a widget may install defaults in onCompleted.
-    onLoaded: Qt.callLater(host.inject)
+    onLoaded: injectLater.start()
   }
+
+  // A lifetime-owned deferred injection cannot fire into a destroyed host
+  // during incremental registry rescans.
+  Timer { id: injectLater; interval: 0; onTriggered: host.inject() }
 
   Text {
     anchors.centerIn: parent

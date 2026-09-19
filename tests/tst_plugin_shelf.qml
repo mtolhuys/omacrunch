@@ -21,7 +21,8 @@ FloatingWindow {
     property var clickTargets: []
     property var layoutConfig: ({center: pluginEntries})
     property var shell: QtObject {
-      function pluginShellForBarEntry(owner, moduleName) { return {pluginId: moduleName} }
+      property bool refuse: false
+      function pluginShellForBarEntry(owner, moduleName) { return refuse ? null : {pluginId: moduleName} }
     }
     property color foreground: "white"
     property color barForeground: "white"
@@ -59,6 +60,16 @@ FloatingWindow {
     function switchPluginPanel(id, screen, direction) { return false }
     function run(command) {}
   }
+  LegacyPluginShell {
+    id: legacyTest
+    pluginId: "self"
+    moduleName: "self-entry"
+    legacyShell: QtObject {
+      property var barConfig: ({})
+      function serviceFor(id) { return id }
+      function updateEntryInline(id, settings) { return id }
+    }
+  }
   Component {
     id: mockWidget
     Rectangle {
@@ -91,6 +102,13 @@ FloatingWindow {
       verify(first.bar !== mockBar, "never inject host bar")
       compare(first.bar.pluginId, "a")
       compare(first.bar.shell.pluginId, "a")
+      mockBar.shell.refuse = true
+      compare(first.bar.shell, null, "scoped refusal must not fall back to legacy")
+      mockBar.shell.refuse = false
+      compare(legacyTest.serviceFor("self"), "self")
+      compare(legacyTest.serviceFor("foreign"), null)
+      compare(legacyTest.updateEntryInline("self-entry", {}), "self-entry")
+      compare(legacyTest.updateEntryInline("foreign", {}), false)
       compare(first.bar.moduleWidgets("b").length, 0, "no foreign widget access")
       compare(first.bar.clickTargets.length, 0, "concealed targets cannot receive forwarded clicks")
       compare(mockBar.clickTargets.length, 0)
@@ -132,6 +150,14 @@ FloatingWindow {
       ]
       tryCompare(first.settings, "label", "updated")
       compare(window.creations, 2, "settings updates must not recreate widgets")
+      mockBar.pluginEntries = [mockBar.pluginEntries[0],
+        {id: "c", pluginId: "c", settings: {id: "c", label: "three"}}, mockBar.pluginEntries[1]]
+      tryCompare(window, "creations", 3)
+      compare(mockBar.moduleWidgets("a")[0], first, "registry arrivals preserve earlier widgets")
+      compare(mockBar.moduleWidgets("b")[0], second)
+      mockBar.pluginEntries = [mockBar.pluginEntries[2], mockBar.pluginEntries[0], mockBar.pluginEntries[1]]
+      wait(50)
+      compare(window.creations, 3, "reorder preserves instances")
       shelf.width = 120
       shelf.pinned = true
       wait(260)

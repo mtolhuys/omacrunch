@@ -135,8 +135,10 @@ Item {
 
   function registerWidget(id, region, screenName, item) {
     if (!item) return
-    unregisterWidget(item)
-    var next = liveWidgets.slice()
+    var next = liveWidgets.filter(function(record) {
+      return record.item && record.item !== item
+        && !(record.id === String(id) && record.screenName === String(screenName))
+    })
     next.push({ id: String(id), region: String(region), screenName: String(screenName), item: item })
     liveWidgets = next
   }

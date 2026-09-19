@@ -22,7 +22,18 @@ Item {
 
   function syncEntries() {
     var ids = hostBar.pluginEntries.map(function(entry) { return entry.id })
-    if (!ShelfModel.sameIds(ids, entryIds)) entryIds = ids
+    if (ShelfModel.sameIds(ids, entryIds)) return
+    // Registry components arrive incrementally during a shell rescan. A JS
+    // array Repeater would rebuild every preceding plugin on each arrival.
+    for (var removed = entriesModel.count - 1; removed >= 0; removed--)
+      if (ids.indexOf(entriesModel.get(removed).entryId) < 0) entriesModel.remove(removed)
+    for (var index = 0; index < ids.length; index++) {
+      var existing = index
+      while (existing < entriesModel.count && entriesModel.get(existing).entryId !== ids[index]) existing++
+      if (existing === entriesModel.count) entriesModel.insert(index, {entryId: ids[index]})
+      else if (existing !== index) entriesModel.move(existing, index, 1)
+    }
+    entryIds = ids
   }
 
   function syncPanels() {
@@ -53,6 +64,7 @@ Item {
     function onPluginEntriesChanged() { shelf.syncEntries() }
   }
   Component.onCompleted: syncEntries()
+  ListModel { id: entriesModel }
   Behavior on animatedWidth { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
   Timer { id: openDelay; interval: 110; onTriggered: shelf.peek = true }
@@ -152,11 +164,11 @@ Item {
           spacing: 0
           Repeater {
             id: hosts
-            model: shelf.entryIds
+            model: entriesModel
             delegate: PluginWidgetHost {
-              required property string modelData
+              required property string entryId
               hostBar: shelf.hostBar
-              moduleId: modelData
+              moduleId: entryId
               screenName: shelf.screenName
               revealHeld: shelf.expanded
               width: implicitWidth

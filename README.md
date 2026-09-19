@@ -76,7 +76,8 @@ Their existing settings and left → center → right order are preserved, with
 duplicate IDs shown once. Built-in widgets, Omacrunch itself, disabled plugins
 and unconfigured entries are excluded. Configure them in Omarchy's existing
 bar/plugin settings; Omacrunch does not enable, install or update those plugins.
-Settings-only changes do not recreate their widgets. Disabling/removing a
+Settings-only changes, reordering and incremental registry arrivals do not
+recreate existing widgets. Disabling/removing a
 widget releases its click targets and open popout.
 
 Compatibility is bounded by Omarchy's public replacement-bar API:
