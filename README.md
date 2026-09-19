@@ -1,38 +1,46 @@
 # Omacrunch
 
-Omacrunch turns the Omarchy shell into a barless, CrunchBang-inspired desktop.
-It is not a launcher skin: it changes the persistent desktop experience while
-keeping Omarchy's native Hyprland and Quickshell stack intact.
+Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
+desktop. It is not a launcher skin: it changes the persistent desktop
+experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.3.0` provides:
+Version `0.4.0` provides:
 
-- a truly barless shell through an intentionally empty Omarchy bar provider;
+- a flat, translucent, 30-pixel topbar on every monitor;
+- a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
+- application icons inside their owning workspace, including focused and
+  urgent states, direct activation and middle-click close;
+- wheel navigation over the workspace strip;
+- pinned system-tray icons and Omarchy's complete native network, audio,
+  battery/power-profile and calendar panels;
+- a compact `HH:mm` clock and an always-readable battery percentage;
 - live CPU, memory, load, network and uptime telemetry over the wallpaper;
 - compact history graphs, host information, clock, date and shortcut hints;
 - one telemetry surface per monitor;
 - wallpaper-aware foreground selection based on the pixels beneath the monitor;
 - an automatic low-profile contrast layer for busy or mixed-tone wallpapers;
 - a sharp, monochrome root menu on right-click;
-- theme-derived colours, so the desktop remains coherent with the active
-  Omarchy theme;
+- theme-derived bar colours plus wallpaper-derived monitor contrast;
 - no background daemon, network access, state files or privileged commands.
 
-The root menu is deliberately secondary. The always-visible wallpaper
-telemetry, absence of a bar and direct desktop interaction are the product.
+The topbar, wallpaper telemetry and root menu form one desktop experience.
+There is no second panel daemon and no Openbox compatibility layer.
 
 ## Architecture
 
 The manifest exposes three cooperating Quattro plugin kinds:
 
-- `bar` — replaces the stock bar without creating a panel surface;
+- `bar` — replaces the stock bar with a CrunchBang++ workspace taskbar and
+  hosts Omarchy's existing status-panel components;
 - `service` — reads Linux `/proc` data every two seconds and renders the
   desktop overlay below application windows;
 - `menu` — supplies the right-click root menu and delegates to the standard
   Omarchy application, style, keybinding and power menus.
 
-No Openbox, tint2 or Conky process is introduced. Omacrunch recreates their
-role inside the existing Omarchy shell instead of running a second desktop
-stack beside it.
+No Openbox, Tint2 or Conky process is introduced. Omacrunch recreates their
+roles inside the existing Omarchy shell instead of running a second desktop
+stack beside it. Network selection, the audio mixer, power profiles, the
+calendar and tray menus remain the native Omarchy implementations.
 
 ## Requirements
 
@@ -46,8 +54,8 @@ omarchy plugin add "$HOME/Projects/plugins/omacrunch" --enable --yes
 ```
 
 The plugin is cloned into Omarchy's user plugin directory and selected as the
-active bar. The stock bar disappears, wallpaper telemetry starts immediately,
-and right-clicking an empty part of the desktop opens the root menu.
+active bar. Its workspace taskbar and wallpaper telemetry start immediately;
+right-clicking an empty part of the desktop opens the root menu.
 
 ## Update a local test installation
 
@@ -95,13 +103,22 @@ make local-test
 `make local-test` refuses a dirty worktree. This guarantees that Omarchy clones
 and runs the same commit that passed the checks. After installation it waits up
 to ten seconds for the shell's asynchronous plugin reload before probing the
-service, so a fast machine and a busy shell follow the same test path. It also
-asserts that the active bar reports no geometry; a silent fallback to Omarchy's
-stock bar therefore fails the test. Finally it opens and closes the root menu
-and verifies both states, leaving no fullscreen surface or keyboard grab behind.
+service. It proves one visible 30-pixel Omacrunch bar exists per screen, at
+least five workspaces are exposed, the native status widgets loaded and the
+calendar routes through the replacement bar. Finally it exercises the adaptive
+wallpaper lifecycle and opens and closes the root menu, leaving no fullscreen
+surface or keyboard grab behind.
 
 ## Interaction
 
+- Click a workspace number: switch to it.
+- Scroll over the workspace strip: previous or next workspace.
+- Click an application icon: focus its window and workspace.
+- Middle-click an application icon: close the window.
+- Click network, audio, battery or time: open the corresponding native panel.
+- Right-click the battery: toggle its percentage display.
+- Middle-click `#!`: open a terminal.
+- Click or right-click `#!`: open the Omacrunch root menu.
 - Right-click empty desktop: Omacrunch root menu.
 - Arrow keys or `J`, then Enter: navigate and activate.
 - `T`, `F`, `W`, `A`, `S`, `K`, `P`: direct root-menu accelerators.

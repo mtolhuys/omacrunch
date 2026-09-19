@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.mtolhuys.omacrunch",
   "name": "Omacrunch",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "author": "Maarten Tolhuijs",
   "license": "MIT",
-  "description": "A barless CrunchBang-inspired Omarchy desktop with live wallpaper telemetry and a clean root menu.",
+  "description": "A complete CrunchBang++-inspired Omarchy shell with a Tint2-style workspace taskbar, adaptive desktop telemetry and root menu.",
   "kinds": [
     "bar",
     "service",
@@ -19,6 +19,6 @@
   "tags": [
     "bar",
     "hyprland",
-    "launcher"
+    "workspace"
   ]
 }

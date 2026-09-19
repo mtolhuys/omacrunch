@@ -11,12 +11,13 @@ check:
 	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml
 	node tests/metrics.test.js
 	node tests/contrast.test.js
+	node tests/workspace.test.js
 	node tests/contracts.test.js
 	omakit inspect . --full
 	omakit verify .
 
 marketplace-check:
-	omakit submit . --category Desktop --tags bar,hyprland,launcher --offline
+	omakit submit . --category Desktop --tags bar,hyprland,workspace --offline
 
 remove-local:
 	@if omarchy plugin list --json | jq -e 'any(.[]; .id == "$(PLUGIN_ID)")' >/dev/null; then \
@@ -37,11 +38,22 @@ open:
 		echo "Inspect the current Quickshell log for 'service plugin load failed'." >&2; \
 		exit 1; \
 	fi
-	@bar_geometry="$$(omarchy-shell shell debugBarGeometry)"; \
-	if [ "$$bar_geometry" != "[]" ]; then \
-		echo "Omacrunch service loaded, but the stock bar is still active: $$bar_geometry" >&2; \
+	@bar_ready=0; \
+	for attempt in $$(seq 1 100); do \
+		bar_geometry="$$(omarchy-shell shell debugBarGeometry 2>/dev/null)"; \
+		if jq -e 'length >= 1 and all(.[]; .id == "omacrunch.workspace-taskbar" and .visible == true and .height == 30 and .width > 0)' <<<"$$bar_geometry" >/dev/null 2>&1; then bar_ready=1; break; fi; \
+		sleep 0.1; \
+	done; \
+	if [ "$$bar_ready" -ne 1 ]; then \
+		echo "Omacrunch workspace taskbar did not expose valid per-screen geometry: $$bar_geometry" >&2; \
 		exit 1; \
 	fi
+	@bar_state="$$(omarchy-shell omacrunch-bar state)"; \
+	if ! jq -e '.height == 30 and .screens >= 1 and .workspaces >= 5 and .widgets >= 4' <<<"$$bar_state" >/dev/null; then \
+		echo "Omacrunch workspace/status bar was incomplete: $$bar_state" >&2; \
+		exit 1; \
+	fi; \
+	echo "Omacrunch bar state: $$bar_state"
 	@echo "Omacrunch service state:"
 	@tone_ready=0; \
 	for attempt in $$(seq 1 100); do \
@@ -66,6 +78,11 @@ open:
 		exit 1; \
 	fi
 	@echo "Omacrunch wallpaper lifecycle: initial -> refreshed"
+	@if [ "$$(omarchy-shell shell summon omarchy.clock '{}')" != "ok" ]; then \
+		echo "Omacrunch did not route the native calendar through its status cluster." >&2; exit 1; \
+	fi
+	@omarchy-shell shell hide omarchy.clock
+	@echo "Omacrunch status panel lifecycle: clock open -> closed"
 	@omarchy-shell shell summon "$(PLUGIN_ID)" '{}'
 	@menu_ready=0; \
 	for attempt in $$(seq 1 30); do \

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 - 2026-09-20
+
+- Replace the deliberately empty bar provider with a 30-pixel CrunchBang++
+  top panel on every monitor.
+- Add a Tint2-style workspace/taskbar hybrid: five persistent desktops,
+  per-workspace application icons, focused and urgent states, direct window
+  activation, middle-click close and wheel workspace navigation.
+- Reuse Omarchy's native tray, network, audio, power and clock components so
+  their complete panels remain available behind the minimal topbar.
+- Pin active tray icons, show battery percentage, use a compact `HH:mm` clock
+  and preserve native calendar, mixer, network and power-profile interactions.
+- Add deterministic workspace-model tests and runtime proofs for bar geometry,
+  native status-widget loading and panel routing.
+
 ## 0.3.2 - 2026-09-19
 
 - Use neutral light and dark telemetry ink instead of potentially clashing
