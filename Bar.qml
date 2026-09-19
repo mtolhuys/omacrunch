@@ -82,7 +82,7 @@ Item {
 
   function widgetSettings(id) {
     if (id === "omarchy.tray") return { id: id, pinned: trayIds(), hidden: [] }
-    if (id === "omarchy.power") return { id: id, showPercentage: true }
+    if (id === "omarchy.power") return { id: id, showPercentage: false }
     if (id === "omarchy.clock") return { id: id, format: "HH:mm", formatAlt: "ddd d MMM yyyy" }
     return { id: id }
   }
@@ -666,30 +666,42 @@ Item {
                 NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
               }
 
-              Loader {
-                id: statusLoader
-                property string moduleId: statusSlot.moduleId
-                property string region: statusSlot.region
-
-                active: root.widgetComponent(moduleId) !== null
-                sourceComponent: root.widgetComponent(moduleId)
-                width: item ? item.implicitWidth : 0
+              Item {
+                id: statusContentClip
+                x: statusSlot.isTray ? statusSlot.toggleWidth : 0
+                width: Math.max(0, statusSlot.width - x)
                 height: root.barSize
-                // Keep the host visible so the loaded item's own `visible`
-                // decision remains independent. Binding Loader visibility
-                // back to item.visible traps an initially hidden child.
-                visible: true
+                clip: statusSlot.isTray
                 opacity: statusSlot.isTray && !statusSlot.trayExpanded ? 0 : 1
 
                 Behavior on opacity {
                   NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
                 }
 
-                onItemChanged: {
-                  if (statusSlot.registeredItem && statusSlot.registeredItem !== item)
-                    root.unregisterWidget(statusSlot.registeredItem)
-                  statusSlot.registeredItem = item
-                  if (item) root.configureWidget(statusLoader, String(barWindow.screen.name || ""))
+                Loader {
+                  id: statusLoader
+                  property string moduleId: statusSlot.moduleId
+                  property string region: statusSlot.region
+
+                  // Omarchy's tray reserves its first slot for its own
+                  // hover-chevron. Crop exactly that slot and keep the pinned
+                  // icons in their original coordinates behind our control.
+                  x: statusSlot.isTray ? -statusSlot.toggleWidth : 0
+                  active: root.widgetComponent(moduleId) !== null
+                  sourceComponent: root.widgetComponent(moduleId)
+                  width: item ? item.implicitWidth : 0
+                  height: root.barSize
+                  // Keep the host visible so the loaded item's own `visible`
+                  // decision remains independent. Binding Loader visibility
+                  // back to item.visible traps an initially hidden child.
+                  visible: true
+
+                  onItemChanged: {
+                    if (statusSlot.registeredItem && statusSlot.registeredItem !== item)
+                      root.unregisterWidget(statusSlot.registeredItem)
+                    statusSlot.registeredItem = item
+                    if (item) root.configureWidget(statusLoader, String(barWindow.screen.name || ""))
+                  }
                 }
               }
 

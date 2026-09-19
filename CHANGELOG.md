@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.7 - 2026-09-20
+
+- Clip Omarchy's native hover-chevron slot out of the composed tray before
+  drawing Omacrunch's animated disclosure control.
+- Preserve the native icon coordinates and translucent bar background while
+  guaranteeing that only one direction indicator can be visible.
+- Keep the battery indicator icon-only by default, matching the equally compact
+  network and volume indicators; its native right-click percentage toggle
+  remains available when an explicit readout is useful.
+
 ## 0.4.6 - 2026-09-20
 
 - Replace the swapping tray characters with one vector chevron that rotates
