@@ -89,16 +89,22 @@ open:
 	@if [ "$$(omarchy-shell omacrunch-bar toggleTray)" != "collapsed" ]; then \
 		echo "Omacrunch tray disclosure did not collapse." >&2; exit 1; \
 	fi
-	@sleep 0.3
-	@tray_visual="$$(omarchy-shell omacrunch-bar trayVisualState)"; \
+	@for attempt in $$(seq 1 40); do \
+		tray_visual="$$(omarchy-shell omacrunch-bar trayVisualState)"; \
+		jq -e '.state == "collapsed" and .width == .targetWidth and .arrowRotation == 180' <<<"$$tray_visual" >/dev/null && break; \
+		sleep 0.1; \
+	done; \
 	if ! jq -e '.state == "collapsed" and .width == .targetWidth and .arrowRotation == 180' <<<"$$tray_visual" >/dev/null; then \
 		echo "Omacrunch tray collapse animation did not settle: $$tray_visual" >&2; exit 1; \
 	fi
 	@if [ "$$(omarchy-shell omacrunch-bar toggleTray)" != "expanded" ]; then \
 		echo "Omacrunch tray disclosure did not expand." >&2; exit 1; \
 	fi
-	@sleep 0.3
-	@tray_visual="$$(omarchy-shell omacrunch-bar trayVisualState)"; \
+	@for attempt in $$(seq 1 40); do \
+		tray_visual="$$(omarchy-shell omacrunch-bar trayVisualState)"; \
+		jq -e '.state == "expanded" and .width == .targetWidth and .arrowRotation == 0' <<<"$$tray_visual" >/dev/null && break; \
+		sleep 0.1; \
+	done; \
 	if ! jq -e '.state == "expanded" and .width == .targetWidth and .arrowRotation == 0' <<<"$$tray_visual" >/dev/null; then \
 		echo "Omacrunch tray expand animation did not settle: $$tray_visual" >&2; exit 1; \
 	fi
@@ -147,5 +153,6 @@ open:
 	done; \
 	if [ "$$menu_closed" -ne 1 ]; then echo "Omacrunch menu retained input focus after hide." >&2; exit 1; fi
 	@echo "Omacrunch menu lifecycle: open -> closed"
+	@bash tests/plugin-shelf-live.sh
 
 local-test: check install-local open
