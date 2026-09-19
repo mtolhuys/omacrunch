@@ -12,6 +12,7 @@ Item {
   property var shell: null
   property var manifest: null
   property bool opened: false
+  property bool focusPrimed: false
   property int selectedIndex: 0
   property real requestedX: Style.space(42)
   property real requestedY: Style.space(42)
@@ -43,11 +44,19 @@ Item {
     root.requestedX = Number(payload.x) || Style.space(42)
     root.requestedY = Number(payload.y) || Style.space(42)
     root.selectedIndex = 0
+    root.focusPrimed = false
     root.opened = true
+    focusPrimeTimer.restart()
     Qt.callLater(function() { keySurface.forceActiveFocus() })
   }
 
-  function close() { root.opened = false }
+  function close() {
+    focusPrimeTimer.stop()
+    root.focusPrimed = false
+    root.opened = false
+  }
+
+  function state() { return root.opened ? "open" : "closed" }
 
   function dismiss() {
     if (root.shell && typeof root.shell.hide === "function") root.shell.hide(root.pluginId)
@@ -82,6 +91,13 @@ Item {
     return false
   }
 
+  Timer {
+    id: focusPrimeTimer
+    interval: 75
+    repeat: false
+    onTriggered: if (root.opened) root.focusPrimed = true
+  }
+
   PanelWindow {
     id: overlay
     screen: root.targetScreen
@@ -90,12 +106,16 @@ Item {
     color: "transparent"
     WlrLayershell.namespace: "omacrunch-menu"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: root.opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: root.opened
+      ? (root.focusPrimed ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive)
+      : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+    onVisibleChanged: if (visible) focusPrimeTimer.restart()
 
     MouseArea {
       anchors.fill: parent
-      acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+      enabled: root.opened
+      acceptedButtons: Qt.AllButtons
       onClicked: root.dismiss()
     }
 
@@ -105,7 +125,11 @@ Item {
       focus: root.opened
 
       Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Escape || event.key === Qt.Key_Q) {
+        var commandModifiers = event.modifiers
+          & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)
+        if (commandModifiers) {
+          event.accepted = false
+        } else if (event.key === Qt.Key_Escape || event.key === Qt.Key_Q) {
           root.dismiss(); event.accepted = true
         } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
           root.move(1); event.accepted = true

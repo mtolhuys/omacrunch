@@ -8,8 +8,9 @@ OMARCHY_SHELL_DIR ?= /usr/share/omarchy/shell
 check:
 	@test -z "$$(git status --porcelain)" || { echo "Refusing to test a dirty worktree; commit the version you want Omarchy to clone." >&2; exit 1; }
 	omarchy plugin validate .
-	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml
+	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml
 	node tests/metrics.test.js
+	node tests/contrast.test.js
 	node tests/contracts.test.js
 	omakit inspect . --full
 	omakit verify .
@@ -43,6 +44,20 @@ open:
 	fi
 	@echo "Omacrunch service state:"
 	omarchy-shell omacrunch state
-	omarchy-shell omacrunch menu
+	@omarchy-shell shell summon "$(PLUGIN_ID)" '{}'
+	@menu_ready=0; \
+	for attempt in $$(seq 1 30); do \
+		if [ "$$(omarchy-shell omacrunch menuState 2>/dev/null)" = "open" ]; then menu_ready=1; break; fi; \
+		sleep 0.05; \
+	done; \
+	if [ "$$menu_ready" -ne 1 ]; then echo "Omacrunch menu did not open." >&2; exit 1; fi
+	@omarchy-shell shell hide "$(PLUGIN_ID)"
+	@menu_closed=0; \
+	for attempt in $$(seq 1 30); do \
+		if [ "$$(omarchy-shell omacrunch menuState 2>/dev/null)" = "closed" ]; then menu_closed=1; break; fi; \
+		sleep 0.05; \
+	done; \
+	if [ "$$menu_closed" -ne 1 ]; then echo "Omacrunch menu retained input focus after hide." >&2; exit 1; fi
+	@echo "Omacrunch menu lifecycle: open -> closed"
 
 local-test: check install-local open

@@ -13,6 +13,10 @@ Item {
   property var manifest: null
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
+  readonly property string home: Quickshell.env("HOME")
+  readonly property string currentStateDir: home + "/.local/state/omarchy/current"
+  readonly property string currentBackground: currentStateDir + "/background"
+  property int wallpaperRevision: 0
 
   property var cpuSnapshot: ({ total: 0, idle: 0 })
   property real cpuPercent: 0
@@ -29,10 +33,14 @@ Item {
   property var memoryHistory: []
   property var networkHistory: []
 
-  readonly property color ink: Color.foreground
+  property color ink: Color.foreground
+  property color scrimColor: Color.background
+  property real scrimOpacity: 0.18
+  property real wallpaperContrast: 1
+  property real wallpaperSpread: 1
   readonly property color quietInk: Util.alpha(ink, 0.60)
   readonly property color faintInk: Util.alpha(ink, 0.26)
-  readonly property color outlineInk: Util.alpha(Color.background, 0.86)
+  readonly property color outlineInk: Util.alpha(scrimColor, 0.86)
 
   function refresh() {
     cpuFile.reload()
@@ -119,6 +127,13 @@ Item {
     onLoaded: root.processor = Metrics.cpuModel(text())
   }
 
+  FileView {
+    path: root.currentStateDir
+    watchChanges: true
+    printErrors: false
+    onFileChanged: root.wallpaperRevision += 1
+  }
+
   Timer {
     interval: 2000
     repeat: true
@@ -139,17 +154,24 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.2.2",
+        version: manifest && manifest.version ? String(manifest.version) : "0.3.0",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
-        hostname: root.hostname
+        hostname: root.hostname,
+        wallpaperContrast: Number(root.wallpaperContrast.toFixed(2)),
+        scrimOpacity: Number(root.scrimOpacity.toFixed(2))
       })
     }
 
     function menu(): string {
       root.openMenu(Style.space(42), Style.space(42))
       return "ok"
+    }
+
+    function menuState(): string {
+      return root.shell && typeof root.shell.isPluginOpen === "function"
+        && root.shell.isPluginOpen(root.pluginId) ? "open" : "closed"
     }
   }
 
@@ -168,6 +190,28 @@ Item {
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
       exclusionMode: ExclusionMode.Ignore
 
+      WallpaperTone {
+        id: wallpaperTone
+        x: -width
+        y: -height
+        source: Util.fileUrl(root.currentBackground) + "?v=" + root.wallpaperRevision
+        screenWidth: desktop.width
+        screenHeight: desktop.height
+        sampleRect: Qt.rect(
+          monitorColumn.x - Style.space(22),
+          monitorColumn.y - Style.space(18),
+          monitorColumn.width + Style.space(44),
+          monitorColumn.implicitHeight + Style.space(36)
+        )
+        lightCandidate: Color.foreground
+        darkCandidate: Color.background
+        onInkChanged: root.ink = ink
+        onScrimColorChanged: root.scrimColor = scrimColor
+        onScrimOpacityChanged: root.scrimOpacity = scrimOpacity
+        onMeasuredContrastChanged: root.wallpaperContrast = measuredContrast
+        onMeasuredSpreadChanged: root.wallpaperSpread = measuredSpread
+      }
+
       MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.RightButton
@@ -177,7 +221,17 @@ Item {
         }
       }
 
+      Rectangle {
+        x: monitorColumn.x - Style.space(22)
+        y: monitorColumn.y - Style.space(18)
+        width: monitorColumn.width + Style.space(44)
+        height: monitorColumn.implicitHeight + Style.space(36)
+        color: Util.alpha(root.scrimColor, root.scrimOpacity)
+        radius: 0
+      }
+
       ColumnLayout {
+        id: monitorColumn
         width: Math.min(Style.space(360), desktop.width * 0.34)
         anchors.top: parent.top
         anchors.right: parent.right
@@ -282,7 +336,7 @@ Item {
     font.family: "monospace"
     font.pixelSize: Style.font.body
     textFormat: Text.PlainText
-    style: Text.Outline
+    style: root.scrimOpacity < 0.08 ? Text.Outline : Text.Normal
     styleColor: root.outlineInk
   }
 

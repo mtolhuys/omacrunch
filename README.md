@@ -4,12 +4,14 @@ Omacrunch turns the Omarchy shell into a barless, CrunchBang-inspired desktop.
 It is not a launcher skin: it changes the persistent desktop experience while
 keeping Omarchy's native Hyprland and Quickshell stack intact.
 
-Version `0.2.2` provides:
+Version `0.3.0` provides:
 
 - a truly barless shell through an intentionally empty Omarchy bar provider;
 - live CPU, memory, load, network and uptime telemetry over the wallpaper;
 - compact history graphs, host information, clock, date and shortcut hints;
 - one telemetry surface per monitor;
+- wallpaper-aware foreground selection based on the pixels beneath the monitor;
+- an automatic low-profile contrast layer for busy or mixed-tone wallpapers;
 - a sharp, monochrome root menu on right-click;
 - theme-derived colours, so the desktop remains coherent with the active
   Omarchy theme;
@@ -70,8 +72,8 @@ the bar it replaced.
 
 Omakit is the quality gate for this repository. The regular check also runs
 Omarchy manifest validation, QML static analysis, deterministic unit tests for
-the `/proc` parsers and a regression test for the replacement-bar loader
-contract:
+the `/proc` parsers and wallpaper contrast algorithm, plus regression tests for
+the replacement-bar and menu-focus contracts:
 
 ```bash
 make check
@@ -95,7 +97,8 @@ and runs the same commit that passed the checks. After installation it waits up
 to ten seconds for the shell's asynchronous plugin reload before probing the
 service, so a fast machine and a busy shell follow the same test path. It also
 asserts that the active bar reports no geometry; a silent fallback to Omarchy's
-stock bar therefore fails the test.
+stock bar therefore fails the test. Finally it opens and closes the root menu
+and verifies both states, leaving no fullscreen surface or keyboard grab behind.
 
 ## Interaction
 

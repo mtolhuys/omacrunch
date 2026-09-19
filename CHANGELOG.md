@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 - 2026-09-19
+
+- Sample the actual wallpaper pixels beneath the system monitor and choose the
+  higher-contrast light or dark theme colour.
+- Add a restrained adaptive scrim for wallpapers whose local tones are too
+  mixed for one text colour to remain legible.
+- Refresh contrast analysis automatically after theme or wallpaper changes.
+- Release exclusive keyboard focus after a short map-time prime.
+- Ignore menu accelerators when Control, Alt or Meta is held.
+- Make the local runtime test prove an open-to-closed menu lifecycle so it
+  cannot leave an invisible input-capturing surface behind.
+
 ## 0.2.2 - 2026-09-19
 
 - Fix replacement-bar construction by providing defaults for properties that
