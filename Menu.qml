@@ -202,16 +202,21 @@ Item {
             height: Style.space(40)
 
             Text {
-              text: "#!  OMACRUNCH"
+              Layout.leftMargin: Style.space(9)
+              Layout.preferredWidth: Style.space(20)
+              horizontalAlignment: Text.AlignHCenter
+              text: "\ue900"
+              textFormat: Text.PlainText
               color: Color.menu.text
-              font.family: "monospace"
+              font.family: "omarchy"
               font.pixelSize: Style.font.title
-              font.bold: true
-              font.letterSpacing: 1
+              Accessible.name: "Omarchy"
             }
             Item { Layout.fillWidth: true }
             Text {
-              text: root.page === "widgets" ? "WIDGETS" : "ROOT"
+              visible: root.page === "widgets"
+              text: "WIDGETS"
+              textFormat: Text.PlainText
               color: Util.alpha(Color.menu.text, 0.45)
               font.family: "monospace"
               font.pixelSize: Style.font.caption

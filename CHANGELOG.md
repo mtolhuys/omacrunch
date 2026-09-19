@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.3 - 2026-09-20
+
+- Replace the desktop menu's `#! OMACRUNCH` heading with the native Omarchy
+  logo, aligned with the menu shortcut column, and remove the `ROOT` label.
+- Keep the Widgets page label for navigation and call the wallpaper's
+  right-click action simply `menu`. Plugin identity and saved state stay intact.
+
 ## 0.6.2 - 2026-09-20
 
 - Dock the plugin shelf directly against the right-hand status section.

@@ -200,7 +200,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.6.2",
+        version: manifest && manifest.version ? String(manifest.version) : "0.6.3",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
@@ -445,7 +445,7 @@ Item {
             Hint { keys: "SUPER + SPACE"; action: "menu"; toneZone: "footer" }
             Hint { keys: "SUPER + 1…9"; action: "workspace"; toneZone: "footer" }
             Hint { keys: "SUPER + Q"; action: "close"; toneZone: "footer" }
-            Hint { keys: "RIGHT CLICK"; action: "omacrunch"; toneZone: "footer" }
+            Hint { keys: "RIGHT CLICK"; action: "menu"; toneZone: "footer" }
             Hint { keys: "SUPER + K"; action: "all keys"; toneZone: "footer" }
           }
         }

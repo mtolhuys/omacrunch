@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.mtolhuys.omacrunch",
   "name": "Omacrunch",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "author": "Maarten Tolhuijs",
   "license": "MIT",
   "description": "A complete CrunchBang++-inspired Omarchy shell with a Tint2-style workspace taskbar, adaptive desktop telemetry and root menu.",

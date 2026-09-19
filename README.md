@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.6.2` provides:
+Version `0.6.3` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -24,7 +24,8 @@ Version `0.6.2` provides:
 - wallpaper-aware foreground selection based on the pixels beneath the monitor;
 - spatially adaptive widget surfaces that keep one clean ink tone per module
   and add only the local contrast floor required by the wallpaper;
-- a sharp, monochrome root menu on right-click;
+- a sharp, monochrome desktop menu on right-click, with only the native
+  Omarchy logo in its header and no plugin branding;
 - theme-derived bar colours plus wallpaper-derived monitor contrast;
 - optional Weather, Agent Usage, Disk Usage and Calendar desktop widgets;
 - per-monitor widget layouts with drag handles, snapping, Save and Cancel;
@@ -235,8 +236,8 @@ surface or keyboard grab behind.
 - Click network, audio, battery or time: open the corresponding native panel.
 - Right-click the battery: toggle its percentage display.
 - Middle-click the Omarchy logo: open a terminal.
-- Click or right-click the Omarchy logo: open the Omacrunch root menu.
-- Right-click empty desktop: Omacrunch root menu.
+- Click or right-click the Omarchy logo: open the desktop menu.
+- Right-click empty desktop: desktop menu.
 - Arrow keys or `J`, then Enter: navigate and activate.
 - `T`, `F`, `W`, `A`, `S`, `I`, `K`, `P`: direct root-menu accelerators.
 - Escape or `Q`: close the root menu.
