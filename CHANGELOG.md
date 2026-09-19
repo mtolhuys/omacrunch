@@ -1,7 +1,18 @@
 # Changelog
 
+## 0.2.0 - 2026-09-19
+
+- Replace the launcher-centric prototype with a persistent desktop experience.
+- Replace the stock bar with a deliberately barless provider.
+- Add live wallpaper telemetry for CPU, memory, load, network and uptime.
+- Add per-monitor system identity, clock, date, shortcut hints and graphs.
+- Add a compact right-click root menu integrated with native Omarchy menus.
+- Add deterministic parser tests and a runtime IPC health check.
+
 ## 0.1.0 - 2026-09-19
 
+- Retracted: this version was a launcher prototype and did not represent the
+  intended CrunchBang desktop experience.
 - Add the `#!` Omarchy bar widget.
 - Add a keyboard-first CrunchBang-inspired command deck.
 - Add fixed-argument launch actions for standard Omarchy tools.

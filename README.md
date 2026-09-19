@@ -1,16 +1,36 @@
 # Omacrunch
 
-Omacrunch is a keyboard-first, CrunchBang-inspired command deck for Omarchy.
-It keeps Omarchy's native Hyprland and Quickshell stack while borrowing the
-quiet typography, sharp edges and direct interaction that made CrunchBang
-memorable.
+Omacrunch turns the Omarchy shell into a barless, CrunchBang-inspired desktop.
+It is not a launcher skin: it changes the persistent desktop experience while
+keeping Omarchy's native Hyprland and Quickshell stack intact.
 
-Version `0.1.0` is deliberately small:
+Version `0.2.0` provides:
 
-- a `#!` bar widget;
-- a keyboard-navigable command deck;
-- launchers for Terminal, Files, Web, Apps, Keybindings and Power;
-- no daemon, network access, polling, state files or privileged commands.
+- a truly barless shell through an intentionally empty Omarchy bar provider;
+- live CPU, memory, load, network and uptime telemetry over the wallpaper;
+- compact history graphs, host information, clock, date and shortcut hints;
+- one telemetry surface per monitor;
+- a sharp, monochrome root menu on right-click;
+- theme-derived colours, so the desktop remains coherent with the active
+  Omarchy theme;
+- no background daemon, network access, state files or privileged commands.
+
+The root menu is deliberately secondary. The always-visible wallpaper
+telemetry, absence of a bar and direct desktop interaction are the product.
+
+## Architecture
+
+The manifest exposes three cooperating Quattro plugin kinds:
+
+- `bar` — replaces the stock bar without creating a panel surface;
+- `service` — reads Linux `/proc` data every two seconds and renders the
+  desktop overlay below application windows;
+- `menu` — supplies the right-click root menu and delegates to the standard
+  Omarchy application, style, keybinding and power menus.
+
+No Openbox, tint2 or Conky process is introduced. Omacrunch recreates their
+role inside the existing Omarchy shell instead of running a second desktop
+stack beside it.
 
 ## Requirements
 
@@ -23,9 +43,9 @@ Version `0.1.0` is deliberately small:
 omarchy plugin add "$HOME/Projects/plugins/omacrunch" --enable --yes
 ```
 
-The plugin is cloned into Omarchy's user plugin directory. Left-click `#!` to
-open the command deck. Middle-click opens the Omarchy keybinding guide and
-right-click opens the applications menu.
+The plugin is cloned into Omarchy's user plugin directory and selected as the
+active bar. The stock bar disappears, wallpaper telemetry starts immediately,
+and right-clicking an empty part of the desktop opens the root menu.
 
 ## Update a local test installation
 
@@ -43,9 +63,14 @@ omarchy plugin add "$HOME/Projects/plugins/omacrunch" --enable --yes
 omarchy plugin remove io.github.mtolhuys.omacrunch --yes
 ```
 
+Removing an enabled installation unloads its service and lets Omarchy restore
+the bar it replaced.
+
 ## Quality checks
 
-Omakit is the quality gate for this repository:
+Omakit is the quality gate for this repository. The regular check also runs
+Omarchy manifest validation, QML static analysis and deterministic unit tests
+for the `/proc` parsers:
 
 ```bash
 make check
@@ -57,15 +82,22 @@ anything. A public GitHub origin is intentionally not required for local use;
 the submission preflight will report that missing publication metadata until
 one is configured.
 
-To validate the clean Git `HEAD`, replace any earlier local installation and
-open that exact build in one pass:
+To validate the clean Git `HEAD`, replace any earlier local installation,
+verify that its service is alive and open its root menu in one pass:
 
 ```bash
 make local-test
 ```
 
-## Current scope
+`make local-test` refuses a dirty worktree. This guarantees that Omarchy clones
+and runs the same commit that passed the checks.
 
-This first release is the shell interaction layer. A companion Omarchy theme
-and a complete replacement bar are natural later stages, but are intentionally
-not hidden inside the initial plugin.
+## Interaction
+
+- Right-click empty desktop: Omacrunch root menu.
+- Arrow keys or `J`, then Enter: navigate and activate.
+- `T`, `F`, `W`, `A`, `S`, `K`, `P`: direct root-menu accelerators.
+- Escape or `Q`: close the root menu.
+
+Existing Omarchy/Hyprland shortcuts remain available and are shown directly
+on the desktop.

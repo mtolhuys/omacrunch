@@ -8,7 +8,8 @@ OMARCHY_SHELL_DIR ?= /usr/share/omarchy/shell
 check:
 	@test -z "$$(git status --porcelain)" || { echo "Refusing to test a dirty worktree; commit the version you want Omarchy to clone." >&2; exit 1; }
 	omarchy plugin validate .
-	qmllint -I "$(OMARCHY_SHELL_DIR)" BarWidget.qml Panel.qml
+	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml
+	node tests/metrics.test.js
 	omakit inspect . --full
 	omakit verify .
 
@@ -24,6 +25,8 @@ install-local: remove-local
 	omarchy plugin add "$(CURDIR)" --enable --yes
 
 open:
-	omarchy-shell shell summon "$(PLUGIN_ID)" '{}'
+	@echo "Omacrunch service state:"
+	omarchy-shell omacrunch state
+	omarchy-shell omacrunch menu
 
 local-test: check install-local open

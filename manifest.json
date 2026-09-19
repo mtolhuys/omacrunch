@@ -2,24 +2,19 @@
   "schemaVersion": 1,
   "id": "io.github.mtolhuys.omacrunch",
   "name": "Omacrunch",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Maarten Tolhuijs",
   "license": "MIT",
-  "description": "A keyboard-first CrunchBang-inspired command deck for Omarchy.",
+  "description": "A barless CrunchBang-inspired Omarchy desktop with live wallpaper telemetry and a clean root menu.",
   "kinds": [
-    "panel",
-    "bar-widget"
+    "bar",
+    "service",
+    "menu"
   ],
   "entryPoints": {
-    "panel": "Panel.qml",
-    "barWidget": "BarWidget.qml"
-  },
-  "barWidget": {
-    "displayName": "Omacrunch",
-    "description": "Open the CrunchBang-inspired command deck",
-    "category": "Launcher",
-    "allowMultiple": false,
-    "defaultSection": "left"
+    "bar": "Bar.qml",
+    "service": "Service.qml",
+    "menu": "Menu.qml"
   },
   "tags": [
     "bar",
