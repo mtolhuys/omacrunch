@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.mtolhuys.omacrunch",
+  "name": "Omacrunch",
+  "version": "0.1.0",
+  "author": "Maarten Tolhuijs",
+  "license": "MIT",
+  "description": "A keyboard-first CrunchBang-inspired command deck for Omarchy.",
+  "kinds": [
+    "panel",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "panel": "Panel.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Omacrunch",
+    "description": "Open the CrunchBang-inspired command deck",
+    "category": "Launcher",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  },
+  "tags": [
+    "bar",
+    "hyprland",
+    "launcher"
+  ]
+}
