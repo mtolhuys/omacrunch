@@ -34,6 +34,8 @@ assert.ok(mixed.haloOpacity >= 0.42, `mixed wallpaper halo was only ${mixed.halo
 assert.ok(mixed.haloOpacity <= 0.64, `mixed wallpaper halo was too heavy at ${mixed.haloOpacity}`)
 assert.ok(mixed.spread > 0.5)
 assert.ok(mixed.minimumContrast < 4.5, "mixed wallpaper should exercise the local halo path")
+assert.ok(mixed.requiredExtremeOpacity > 0.15,
+  "mixed wallpaper should request a real per-widget contrast floor")
 
 const fiery = context.analyze(
   pixels([[18, 3, 12], [92, 10, 18], [240, 45, 4], [255, 205, 8]]),
@@ -43,6 +45,8 @@ const fiery = context.analyze(
 assert.equal(fiery.useLight, true)
 assert.equal(fiery.scrimOpacity, 0)
 assert.ok(fiery.haloOpacity >= 0.42, `fiery wallpaper halo was only ${fiery.haloOpacity}`)
+assert.ok(fiery.requiredExtremeOpacity > 0,
+  "fiery wallpaper should expose the surface opacity needed for readable widgets")
 
 const mostlyDark = context.analyze(
   pixels([[0, 0, 0], [8, 8, 8], [16, 16, 16], [30, 30, 30], [255, 255, 255]]),

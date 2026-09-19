@@ -47,7 +47,12 @@ Item {
   function tone(name) {
     var candidate = wallpaperZones ? wallpaperZones[name] : null
     return candidate && candidate.useLight !== undefined
-      ? candidate : { useLight: true, haloOpacity: 0.48 }
+      ? candidate : {
+        useLight: true,
+        haloOpacity: 0.48,
+        minimumContrast: 1,
+        requiredExtremeOpacity: 0.72
+      }
   }
 
   function zoneInk(name) {
@@ -64,6 +69,17 @@ Item {
 
   function zoneOutline(name) {
     return Util.alpha(tone(name).useLight ? "#000000" : "#ffffff", tone(name).haloOpacity)
+  }
+
+  function zoneSurfaceOpacity(name) {
+    var local = tone(name)
+    if (Number(local.minimumContrast || 0) >= 4.5) return 0
+    return Math.min(0.88, Math.max(0.18, Number(local.requiredExtremeOpacity || 0) + 0.04))
+  }
+
+  function zoneSurfaceColor(name) {
+    var local = tone(name)
+    return Util.alpha(local.useLight ? "#000000" : "#ffffff", zoneSurfaceOpacity(name))
   }
 
   function refresh() {
@@ -287,139 +303,146 @@ Item {
         anchors.rightMargin: Style.space(46)
         spacing: Style.space(12)
 
-        ColumnLayout {
-          Layout.fillWidth: true
-          spacing: 0
+        WidgetSurface {
+          toneZone: "header"
 
-          Ink {
-            text: Qt.formatDateTime(clock.date, "HH:mm")
-            toneZone: "headerLeft"
-            font.pixelSize: Style.space(48)
-            font.bold: true
+          ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+
+            Ink {
+              text: Qt.formatDateTime(clock.date, "HH:mm")
+              toneZone: "header"
+              font.pixelSize: Style.space(48)
+              font.bold: true
+            }
+
+            Ink {
+              text: Qt.formatDateTime(clock.date, "dddd, d MMMM yyyy").toUpperCase()
+              toneZone: "header"
+              quiet: true
+              font.pixelSize: Style.font.caption
+              font.letterSpacing: 1.5
+            }
           }
 
-          Ink {
-            text: Qt.formatDateTime(clock.date, "dddd, d MMMM yyyy").toUpperCase()
-            toneZone: "headerLeft"
-            quiet: true
-            font.pixelSize: Style.font.caption
-            font.letterSpacing: 1.5
+          ContrastRule { Layout.fillWidth: true; toneZone: "header" }
+
+          ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Style.space(3)
+
+            Ink { text: root.hostname.toUpperCase(); toneZone: "header"; font.bold: true; font.pixelSize: Style.font.title }
+            Ink { text: "OMARCHY  /  HYPRLAND  /  " + root.kernel; toneZone: "header"; quiet: true; font.pixelSize: Style.font.caption }
+            Ink { text: root.processor; toneZone: "header"; quiet: true; font.pixelSize: Style.font.caption; elide: Text.ElideRight; Layout.fillWidth: true }
           }
         }
 
-        ContrastRule {
-          Layout.fillWidth: true
-          leftZone: "headerLeft"
-          rightZone: "headerRight"
+        WidgetSurface {
+          toneZone: "body"
+
+          Metric {
+            label: "CPU"
+            value: root.cpuPercent.toFixed(0) + "%"
+            fraction: root.cpuPercent / 100
+            samples: root.cpuHistory
+          }
+
+          Metric {
+            label: "MEM"
+            value: Metrics.formatBytes(root.memory.used) + " / " + Metrics.formatBytes(root.memory.total)
+            fraction: root.memory.percent / 100
+            samples: root.memoryHistory
+          }
+
+          Metric {
+            label: "LOAD"
+            value: root.load.one.toFixed(2) + "  " + root.load.five.toFixed(2) + "  " + root.load.fifteen.toFixed(2)
+            fraction: Math.min(1, root.load.one / 8)
+            samples: []
+          }
+
+          Metric {
+            label: "NET"
+            value: "↓ " + Metrics.formatRate(root.networkDown) + "   ↑ " + Metrics.formatRate(root.networkUp)
+            fraction: 0
+            samples: root.networkHistory
+          }
+
+          RowLayout {
+            Layout.fillWidth: true
+            Ink { text: "UPTIME"; toneZone: "body"; quiet: true; font.pixelSize: Style.font.caption; font.bold: true }
+            Item { Layout.fillWidth: true }
+            Ink { text: root.uptime; toneZone: "body"; font.pixelSize: Style.font.body }
+          }
         }
 
-        ColumnLayout {
-          Layout.fillWidth: true
-          spacing: Style.space(3)
+        WidgetSurface {
+          toneZone: "footer"
 
-          Ink { text: root.hostname.toUpperCase(); toneZone: "headerLeft"; font.bold: true; font.pixelSize: Style.font.title }
-          Ink { text: "OMARCHY  /  HYPRLAND  /  " + root.kernel; toneZone: "headerLeft"; quiet: true; font.pixelSize: Style.font.caption }
-          Ink { text: root.processor; toneZone: "headerLeft"; quiet: true; font.pixelSize: Style.font.caption; elide: Text.ElideRight; Layout.fillWidth: true }
-        }
+          GridLayout {
+            Layout.fillWidth: true
+            columns: 2
+            columnSpacing: Style.space(18)
+            rowSpacing: Style.space(4)
 
-        Metric {
-          label: "CPU"
-          value: root.cpuPercent.toFixed(0) + "%"
-          fraction: root.cpuPercent / 100
-          samples: root.cpuHistory
-        }
-
-        Metric {
-          label: "MEM"
-          value: Metrics.formatBytes(root.memory.used) + " / " + Metrics.formatBytes(root.memory.total)
-          fraction: root.memory.percent / 100
-          samples: root.memoryHistory
-        }
-
-        Metric {
-          label: "LOAD"
-          value: root.load.one.toFixed(2) + "  " + root.load.five.toFixed(2) + "  " + root.load.fifteen.toFixed(2)
-          fraction: Math.min(1, root.load.one / 8)
-          samples: []
-        }
-
-        Metric {
-          label: "NET"
-          value: "↓ " + Metrics.formatRate(root.networkDown) + "   ↑ " + Metrics.formatRate(root.networkUp)
-          fraction: 0
-          samples: root.networkHistory
-        }
-
-        RowLayout {
-          Layout.fillWidth: true
-          Ink { text: "UPTIME"; toneZone: "footerLeft"; quiet: true; font.pixelSize: Style.font.caption; font.bold: true }
-          Item { Layout.fillWidth: true }
-          Ink { text: root.uptime; toneZone: "footerRight"; font.pixelSize: Style.font.body }
-        }
-
-        ContrastRule {
-          Layout.fillWidth: true
-          Layout.topMargin: Style.space(4)
-          leftZone: "footerLeft"
-          rightZone: "footerRight"
-        }
-
-        GridLayout {
-          Layout.fillWidth: true
-          columns: 2
-          columnSpacing: Style.space(18)
-          rowSpacing: Style.space(4)
-
-          Hint { keys: "SUPER + RETURN"; action: "terminal"; toneZone: "footerLeft" }
-          Hint { keys: "SUPER + SPACE"; action: "menu"; toneZone: "footerRight" }
-          Hint { keys: "SUPER + 1…9"; action: "workspace"; toneZone: "footerLeft" }
-          Hint { keys: "SUPER + Q"; action: "close"; toneZone: "footerRight" }
-          Hint { keys: "RIGHT CLICK"; action: "omacrunch"; toneZone: "footerLeft" }
-          Hint { keys: "SUPER + K"; action: "all keys"; toneZone: "footerRight" }
+            Hint { keys: "SUPER + RETURN"; action: "terminal"; toneZone: "footer" }
+            Hint { keys: "SUPER + SPACE"; action: "menu"; toneZone: "footer" }
+            Hint { keys: "SUPER + 1…9"; action: "workspace"; toneZone: "footer" }
+            Hint { keys: "SUPER + Q"; action: "close"; toneZone: "footer" }
+            Hint { keys: "RIGHT CLICK"; action: "omacrunch"; toneZone: "footer" }
+            Hint { keys: "SUPER + K"; action: "all keys"; toneZone: "footer" }
+          }
         }
       }
     }
   }
 
+  component WidgetSurface: Rectangle {
+    id: surfaceRoot
+    required property string toneZone
+    default property alias widgetData: surfaceContent.data
+    readonly property real surfaceOpacity: root.zoneSurfaceOpacity(toneZone)
+    readonly property real inset: Style.space(8)
+
+    Layout.fillWidth: true
+    implicitHeight: surfaceContent.implicitHeight + (inset * 2)
+    color: root.zoneSurfaceColor(toneZone)
+    radius: Style.space(2)
+    border.width: surfaceOpacity > 0 ? 1 : 0
+    border.color: root.zoneFaintInk(toneZone)
+
+    ColumnLayout {
+      id: surfaceContent
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.margins: surfaceRoot.inset
+      spacing: Style.space(10)
+    }
+  }
+
   component Ink: Text {
-    property string toneZone: "bodyLeft"
+    property string toneZone: "body"
     property bool quiet: false
     color: quiet ? root.zoneQuietInk(toneZone) : root.zoneInk(toneZone)
     font.family: "monospace"
     font.pixelSize: Style.font.body
     textFormat: Text.PlainText
-    style: Text.Outline
-    styleColor: root.zoneOutline(toneZone)
+    style: Text.Normal
   }
 
   component ContrastRule: Item {
     id: ruleRoot
-    property string leftZone: "bodyLeft"
-    property string rightZone: "bodyRight"
-    implicitHeight: Math.max(3, Style.space(3))
-
-    Rectangle {
-      anchors.left: parent.left
-      anchors.right: parent.right
-      anchors.verticalCenter: parent.verticalCenter
-      height: Math.max(3, Style.space(3))
-      gradient: Gradient {
-        orientation: Gradient.Horizontal
-        GradientStop { position: 0; color: root.zoneOutline(ruleRoot.leftZone) }
-        GradientStop { position: 1; color: root.zoneOutline(ruleRoot.rightZone) }
-      }
-    }
+    property string toneZone: "body"
+    implicitHeight: Math.max(1, Style.space(1))
 
     Rectangle {
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.verticalCenter: parent.verticalCenter
       height: Math.max(1, Style.space(1))
-      gradient: Gradient {
-        orientation: Gradient.Horizontal
-        GradientStop { position: 0; color: root.zoneFaintInk(ruleRoot.leftZone) }
-        GradientStop { position: 1; color: root.zoneFaintInk(ruleRoot.rightZone) }
-      }
+      color: root.zoneFaintInk(ruleRoot.toneZone)
     }
   }
 
@@ -446,9 +469,9 @@ Item {
 
     RowLayout {
       Layout.fillWidth: true
-      Ink { text: label; toneZone: "bodyLeft"; quiet: true; font.pixelSize: Style.font.caption; font.bold: true }
+      Ink { text: label; toneZone: "body"; quiet: true; font.pixelSize: Style.font.caption; font.bold: true }
       Item { Layout.fillWidth: true }
-      Ink { text: value; toneZone: "bodyRight"; font.pixelSize: Style.font.body }
+      Ink { text: value; toneZone: "body"; font.pixelSize: Style.font.body }
     }
 
     Item {
@@ -458,24 +481,11 @@ Item {
       Sparkline {
         anchors.fill: parent
         samples: metricRoot.samples
-        lineColor: root.zoneInk("bodyLeft")
-        lineColorRight: root.zoneInk("bodyRight")
-        outlineColor: root.zoneOutline("bodyLeft")
-        outlineColorRight: root.zoneOutline("bodyRight")
-        fillColor: "transparent"
-      }
-
-      Rectangle {
-        visible: metricRoot.samples.length < 2
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
-        width: parent.width * Math.max(0, Math.min(1, metricRoot.fraction))
-        height: Math.max(3, Style.space(4))
-        gradient: Gradient {
-          orientation: Gradient.Horizontal
-          GradientStop { position: 0; color: root.zoneOutline("bodyLeft") }
-          GradientStop { position: 1; color: root.zoneOutline("bodyRight") }
-        }
+        lineColor: root.zoneInk("body")
+        lineColorRight: lineColor
+        outlineColor: "transparent"
+        outlineColorRight: outlineColor
+        fillColor: Util.alpha(root.zoneInk("body"), 0.08)
       }
 
       Rectangle {
@@ -484,23 +494,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: parent.width * Math.max(0, Math.min(1, metricRoot.fraction))
         height: Math.max(1, Style.space(2))
-        gradient: Gradient {
-          orientation: Gradient.Horizontal
-          GradientStop { position: 0; color: root.zoneInk("bodyLeft") }
-          GradientStop { position: 1; color: root.zoneInk("bodyRight") }
-        }
-      }
-
-      Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: Math.max(3, Style.space(3))
-        gradient: Gradient {
-          orientation: Gradient.Horizontal
-          GradientStop { position: 0; color: root.zoneOutline("bodyLeft") }
-          GradientStop { position: 1; color: root.zoneOutline("bodyRight") }
-        }
+        color: root.zoneInk("body")
       }
 
       Rectangle {
@@ -508,11 +502,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: Math.max(1, Style.space(1))
-        gradient: Gradient {
-          orientation: Gradient.Horizontal
-          GradientStop { position: 0; color: root.zoneFaintInk("bodyLeft") }
-          GradientStop { position: 1; color: root.zoneFaintInk("bodyRight") }
-        }
+        color: root.zoneFaintInk("body")
       }
     }
   }

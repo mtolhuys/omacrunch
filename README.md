@@ -20,7 +20,8 @@ Version `0.4.3` provides:
 - compact history graphs, host information, clock, date and shortcut hints;
 - one telemetry surface per monitor;
 - wallpaper-aware foreground selection based on the pixels beneath the monitor;
-- spatially adaptive text and graph tones with subtle local halos, without covering the wallpaper with a contrast card;
+- spatially adaptive widget surfaces that keep one clean ink tone per module
+  and add only the local contrast floor required by the wallpaper;
 - a sharp, monochrome root menu on right-click;
 - theme-derived bar colours plus wallpaper-derived monitor contrast;
 - no background daemon, network access, state files or privileged commands.

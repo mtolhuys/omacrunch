@@ -7,6 +7,10 @@
   CrunchBang++ inspired.
 - Turn workspace applications into a compact icon strip without nested card
   padding, and mark the active application with a restrained two-pixel rule.
+- Replace per-label light/dark switching and noisy text outlines with reusable
+  header, metrics and shortcut surfaces. Each future desktop widget now picks
+  one consistent ink tone and adds only the local contrast floor its wallpaper
+  region needs.
 
 ## 0.4.2 - 2026-09-20
 
