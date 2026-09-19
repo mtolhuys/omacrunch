@@ -8,9 +8,9 @@ for attempt in $(seq 1 60); do
   bar_state=$(omarchy-shell omacrunch-bar state)
   if jq -en --argjson shelves "$shelves" --argjson bar "$bar_state" '
     ($shelves | length) > 0 and
-    all($shelves[]; . as $shelf |
+    all($shelves[]; .right == .anchorRight and (. as $shelf |
       all(.ids[]; . as $id |
-        [$bar.widgetMetrics[] | select(.id == $id and .screen == $shelf.screen and .height > 0)] | length == 1))
+        [$bar.widgetMetrics[] | select(.id == $id and .screen == $shelf.screen and .height > 0)] | length == 1)))
     and ([$bar.widgetMetrics[] | [.screen,.id]] | length == (unique | length))
   ' >/dev/null; then shelf_ready=1; break; fi
   sleep 0.1

@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.6.1` provides:
+Version `0.6.2` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -58,8 +58,11 @@ calendar and tray menus remain the native Omarchy implementations.
 
 ## Third-party plugin shelf
 
-The quiet three-dot handle between workspaces and status indicators is the
-plugin shelf. Hover for 110 ms to reveal it; moving away gives you 450 ms of
+The quiet three-dot handle immediately before the right-hand status section is
+the plugin shelf. It is right-aligned with that section, not floating in the
+middle. The handle stays fixed and the widgets reveal to its left; their panel
+anchors stay fixed during animation too. Hover for 110 ms to reveal it;
+moving away gives you 450 ms of
 grace before it fades closed. Left-click the handle to pin/unpin it for this
 session; right-click returns to auto-hide. A pinned handle becomes three small
 bars with an underline. Each monitor has its own reveal/pin state.

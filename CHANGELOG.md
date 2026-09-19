@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2 - 2026-09-20
+
+- Dock the plugin shelf directly against the right-hand status section.
+- Reveal widgets leftward from a stationary rightmost handle; keep both
+  handle and popout-anchor coordinates stable during the animation.
+- Assert right alignment and stable reveal/collapse geometry in UI/live tests.
+
 ## 0.6.1 - 2026-09-20
 
 - Fix clicking empty/uncreated workspaces: pass the dispatcher expression

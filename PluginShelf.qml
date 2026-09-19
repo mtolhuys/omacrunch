@@ -10,7 +10,7 @@ Item {
   property bool peek: false
   property bool panelHeld: false
   readonly property bool expanded: entryIds.length > 0 && (pinned || peek || panelHeld)
-  readonly property bool overflow: widgetsRow.width > Math.max(0, openWidth - handleWidth) + 1
+  readonly property bool overflow: widgetsRow.width > Math.max(0, openWidth - handleWidth - 8) + 1
   readonly property real handleWidth: 32
   readonly property real openWidth: Math.min(Math.max(0, width - 12), handleWidth + widgetsRow.width + 8)
   readonly property alias handle: handleButton
@@ -56,7 +56,10 @@ Item {
     return { screen: screenName, ids: entryIds, expanded: expanded, pinned: pinned,
       held: panelHeld, overflow: overflow, width: Math.round(capsule.width),
       contentWidth: Math.round(widgetsRow.width), scroll: Math.round(viewport.contentX),
-      x: Math.round(shelf.x + capsule.x), handleX: Math.round(shelf.x + capsule.x + handleWidth / 2) }
+      x: Math.round(shelf.x + capsule.x),
+      right: Math.round(shelf.x + capsule.x + capsule.width),
+      anchorRight: Math.round(shelf.x + shelf.width),
+      handleX: Math.round(shelf.x + capsule.x + handleButton.x + handleWidth / 2) }
   }
 
   Connections {
@@ -76,9 +79,9 @@ Item {
 
   Item {
     id: capsule
-    // The handle stays still during reveal, so hover never moves a target
-    // out from under the pointer. The expanded shelf is centered in free space.
-    x: Math.max(0, (shelf.width - shelf.openWidth) / 2)
+    // Dock to the status section. The rightmost handle stays still while the
+    // plugin strip reveals toward the left, leaving the middle of the bar calm.
+    x: shelf.width - width
     width: shelf.animatedWidth
     height: shelf.height
     visible: shelf.entryIds.length > 0
@@ -99,6 +102,7 @@ Item {
 
     Item {
       id: handleButton
+      x: Math.max(0, capsule.width - width)
       width: shelf.handleWidth
       height: parent.height
       property bool tooltipHovered: handleMouse.containsMouse
@@ -140,9 +144,12 @@ Item {
 
     Item {
       id: contents
-      x: shelf.handleWidth
-      width: Math.max(0, capsule.width - x)
+      width: Math.max(0, capsule.width - shelf.handleWidth)
       height: parent.height
+      // Keep each icon's final coordinates even while clipped out. A panel
+      // opened via IPC/shortcut must not acquire a moving animation anchor.
+      readonly property real stripWidth: Math.max(0, shelf.openWidth - shelf.handleWidth)
+      readonly property real stripX: width - stripWidth
       clip: true
       enabled: shelf.expanded
       opacity: shelf.expanded ? 1 : 0
@@ -150,8 +157,8 @@ Item {
 
       Flickable {
         id: viewport
-        x: shelf.overflow ? 20 : 0
-        width: Math.max(0, contents.width - (shelf.overflow ? 40 : 0))
+        x: contents.stripX + (shelf.overflow ? 20 : 4)
+        width: Math.max(0, contents.stripWidth - (shelf.overflow ? 40 : 8))
         height: parent.height
         contentWidth: widgetsRow.width
         contentHeight: height
@@ -185,7 +192,7 @@ Item {
         delegate: Item {
           required property int modelData
           width: 20; height: contents.height
-          x: modelData < 0 ? 0 : contents.width - width
+          x: contents.stripX + (modelData < 0 ? 0 : contents.stripWidth - width)
           visible: shelf.overflow
           Text {
             anchors.centerIn: parent

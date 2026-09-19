@@ -99,6 +99,9 @@ FloatingWindow {
       compare(shelf.expanded, false)
       var first = mockBar.moduleWidgets("a")[0]
       var second = mockBar.moduleWidgets("b")[0]
+      var restingHandleX = shelf.handle.mapToItem(window.contentItem, 16, 15).x
+      var restingIconX = first.mapToItem(window.contentItem, 0, 0).x
+      compare(shelf.surface.x + shelf.surface.width, shelf.width, "collapsed right edge is docked")
       verify(first.bar !== mockBar, "never inject host bar")
       compare(first.bar.pluginId, "a")
       compare(first.bar.shell.pluginId, "a")
@@ -114,15 +117,24 @@ FloatingWindow {
       compare(mockBar.clickTargets.length, 0)
       mouseMove(shelf.handle, 16, 15)
       tryCompare(shelf, "expanded", true)
+      wait(60)
+      compare(shelf.handle.mapToItem(window.contentItem, 16, 15).x, restingHandleX,
+        "handle stays fixed during reveal")
+      compare(first.mapToItem(window.contentItem, 0, 0).x, restingIconX,
+        "panel anchor stays fixed during reveal")
       compare(first.bar.clickTargets.length, 1)
       compare(first.bar.clickTargets[0], first)
       wait(240)
       compare(shelf.surface.width, shelf.openWidth)
+      compare(shelf.surface.x + shelf.surface.width, shelf.width, "expanded right edge is docked")
       mouseMove(window.contentItem, 900, 200)
       wait(160)
       compare(shelf.expanded, true, "leave grace")
       tryCompare(shelf, "expanded", false)
       compare(mockBar.clickTargets.length, 0)
+      wait(220)
+      compare(shelf.handle.mapToItem(window.contentItem, 16, 15).x, restingHandleX,
+        "handle stays fixed after collapse")
       compare(window.creations, 2, "hide must not unload")
       mouseClick(shelf.handle, 16, 15, Qt.LeftButton)
       tryCompare(shelf, "pinned", true)
