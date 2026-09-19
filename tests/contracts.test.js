@@ -18,6 +18,12 @@ for (const property of injected) {
 
 assert.match(bar, /WlrLayershell\.namespace:\s*"omacrunch-bar"/)
 assert.match(bar, /readonly\s+property\s+int\s+barSize:\s*30/)
+assert.match(bar, /readonly\s+property\s+int\s+taskSlotWidth:\s*Style\.space\(18\)/)
+assert.match(bar, /readonly\s+property\s+int\s+taskIconSize:\s*Style\.space\(13\)/)
+assert.ok(bar.includes('text: "\\ue900"'), "bar menu uses the Omarchy logo glyph")
+assert.match(bar, /font\.family:\s*"omarchy"/)
+assert.match(bar, /workspaceContent\.implicitWidth\s*\+\s*\(root\.workspaceContentPadding\s*\*\s*2\)/)
+assert.match(bar, /visible:\s*taskButton\.client\s*&&\s*taskButton\.client\.activated/)
 assert.match(bar, /function\s+debugBarGeometry\s*\(\)/)
 assert.match(bar, /"omacrunch\.workspace-taskbar"/)
 assert.match(bar, /workspace\.toplevels\.values/)

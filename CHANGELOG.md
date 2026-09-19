@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3 - 2026-09-20
+
+- Replace the historical `#!` menu mark with Omarchy's own logo glyph, keeping
+  the host desktop visibly credited while the surrounding experience remains
+  CrunchBang++ inspired.
+- Turn workspace applications into a compact icon strip without nested card
+  padding, and mark the active application with a restrained two-pixel rule.
+
 ## 0.4.2 - 2026-09-20
 
 - Turn the tray chevron into a real disclosure control instead of leaving the

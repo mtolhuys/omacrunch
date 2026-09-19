@@ -26,6 +26,10 @@ Item {
   readonly property string position: "top"
   readonly property bool vertical: false
   readonly property int barSize: 30
+  readonly property int workspaceNumberWidth: Style.space(14)
+  readonly property int taskSlotWidth: Style.space(18)
+  readonly property int taskIconSize: Style.space(13)
+  readonly property int workspaceContentPadding: Style.space(2)
   property real panelOpacity: 0.92
   readonly property bool transparent: panelOpacity < 1
   readonly property color foreground: Color.bar.text
@@ -428,16 +432,16 @@ Item {
         spacing: 0
 
         Item {
-          Layout.preferredWidth: root.barSize + Style.space(4)
+          Layout.preferredWidth: Style.bar.iconSlot
           Layout.fillHeight: true
 
           Text {
             anchors.centerIn: parent
-            text: "#!"
+            text: "\ue900"
             color: root.foreground
-            font.family: root.fontFamily
+            font.family: "omarchy"
             font.pixelSize: Style.font.body
-            font.bold: true
+            textFormat: Text.PlainText
           }
 
           MouseArea {
@@ -482,7 +486,8 @@ Item {
                 readonly property bool urgentState: workspace ? workspace.urgent === true : false
 
                 height: workspaceRow.height
-                width: Math.max(root.barSize, workspaceContent.implicitWidth + Style.space(8))
+                width: Math.max(root.barSize,
+                  workspaceContent.implicitWidth + (root.workspaceContentPadding * 2))
                 color: urgentState
                   ? Util.alpha(root.urgent, 0.34)
                   : (focused ? Util.alpha(root.foreground, 0.12) : "transparent")
@@ -492,10 +497,10 @@ Item {
                   z: 1
                   anchors.centerIn: parent
                   height: parent.height
-                  spacing: Style.space(2)
+                  spacing: 0
 
                   Text {
-                    width: Style.space(16)
+                    width: root.workspaceNumberWidth
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
@@ -518,17 +523,16 @@ Item {
                       readonly property string title: Workspace.clientTitle(client)
                       readonly property string iconSource: root.clientIcon(client)
 
-                      width: Style.space(22)
+                      width: root.taskSlotWidth
                       height: workspaceCell.height
 
                       Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: Style.space(2)
-                        radius: 1
-                        color: taskButton.client && taskButton.client.urgent
-                          ? Util.alpha(root.urgent, 0.48)
-                          : (taskButton.client && taskButton.client.activated
-                            ? Util.alpha(root.foreground, 0.16) : "transparent")
+                        anchors.centerIn: parent
+                        width: root.taskIconSize + Style.space(3)
+                        height: width
+                        radius: Style.space(2)
+                        visible: taskButton.client && taskButton.client.urgent
+                        color: Util.alpha(root.urgent, 0.42)
                       }
 
                       Text {
@@ -546,12 +550,21 @@ Item {
                       Image {
                         id: taskIcon
                         anchors.centerIn: parent
-                        width: Style.space(14)
+                        width: root.taskIconSize
                         height: width
                         source: taskButton.iconSource
                         fillMode: Image.PreserveAspectFit
                         smooth: true
                         opacity: taskButton.client && taskButton.client.activated ? 1 : 0.72
+                      }
+
+                      Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        width: root.taskIconSize
+                        height: 2
+                        visible: taskButton.client && taskButton.client.activated
+                        color: root.foreground
                       }
 
                       MouseArea {
