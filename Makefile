@@ -80,10 +80,20 @@ open:
 	@if [ "$$(omarchy-shell omacrunch-bar toggleTray)" != "collapsed" ]; then \
 		echo "Omacrunch tray disclosure did not collapse." >&2; exit 1; \
 	fi
+	@sleep 0.3
+	@tray_visual="$$(omarchy-shell omacrunch-bar trayVisualState)"; \
+	if ! jq -e '.state == "collapsed" and .width == .targetWidth and .arrowRotation == 180' <<<"$$tray_visual" >/dev/null; then \
+		echo "Omacrunch tray collapse animation did not settle: $$tray_visual" >&2; exit 1; \
+	fi
 	@if [ "$$(omarchy-shell omacrunch-bar toggleTray)" != "expanded" ]; then \
 		echo "Omacrunch tray disclosure did not expand." >&2; exit 1; \
 	fi
-	@echo "Omacrunch tray lifecycle: expanded -> collapsed -> expanded"
+	@sleep 0.3
+	@tray_visual="$$(omarchy-shell omacrunch-bar trayVisualState)"; \
+	if ! jq -e '.state == "expanded" and .width == .targetWidth and .arrowRotation == 0' <<<"$$tray_visual" >/dev/null; then \
+		echo "Omacrunch tray expand animation did not settle: $$tray_visual" >&2; exit 1; \
+	fi
+	@echo "Omacrunch tray lifecycle: expanded -> collapsed/right -> expanded/left"
 	@echo "Omacrunch service state:"
 	@tone_ready=0; \
 	for attempt in $$(seq 1 100); do \

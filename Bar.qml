@@ -143,6 +143,17 @@ Item {
     return control && control.trayExpanded ? "expanded" : (control ? "collapsed" : "missing")
   }
 
+  function trayVisualState() {
+    var control = focusedTrayControl()
+    if (!control) return JSON.stringify({ state: "missing" })
+    return JSON.stringify({
+      state: control.trayExpanded ? "expanded" : "collapsed",
+      width: Math.round(control.width),
+      targetWidth: Math.round(control.trayTargetWidth),
+      arrowRotation: Math.round(control.trayArrowRotation)
+    })
+  }
+
   function registerBarWindow(window) {
     if (!window || liveBarWindows.indexOf(window) !== -1) return
     var next = liveBarWindows.slice()
@@ -393,6 +404,8 @@ Item {
     }
 
     function trayState(): string { return root.trayState() }
+
+    function trayVisualState(): string { return root.trayVisualState() }
   }
 
   Variants {
@@ -638,13 +651,20 @@ Item {
               readonly property real nativeWidth: statusLoader.item
                 && statusLoader.item.visible !== false ? statusLoader.item.implicitWidth : 0
               readonly property real toggleWidth: Style.bar.iconSlot
+              readonly property real trayTargetWidth: trayExpanded ? nativeWidth : toggleWidth
+              property real animatedTrayWidth: trayTargetWidth
+              readonly property real trayArrowRotation: trayArrow.rotation
 
               Layout.preferredWidth: isTray && nativeWidth > 0
-                ? (trayExpanded ? nativeWidth : toggleWidth) : nativeWidth
+                ? animatedTrayWidth : nativeWidth
               Layout.preferredHeight: root.barSize
               Layout.fillHeight: true
               visible: true
               clip: isTray
+
+              Behavior on animatedTrayWidth {
+                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+              }
 
               Loader {
                 id: statusLoader
@@ -659,6 +679,11 @@ Item {
                 // decision remains independent. Binding Loader visibility
                 // back to item.visible traps an initially hidden child.
                 visible: true
+                opacity: statusSlot.isTray && !statusSlot.trayExpanded ? 0 : 1
+
+                Behavior on opacity {
+                  NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+                }
 
                 onItemChanged: {
                   if (statusSlot.registeredItem && statusSlot.registeredItem !== item)
@@ -680,13 +705,51 @@ Item {
                   color: trayMouse.containsMouse ? Util.alpha(root.foreground, 0.10) : "transparent"
                 }
 
-                Text {
+                Item {
+                  id: trayArrow
                   anchors.centerIn: parent
-                  text: statusSlot.trayExpanded ? "\u2039" : "\u203a"
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                  textFormat: Text.PlainText
+                  width: Style.space(8)
+                  height: Style.space(12)
+                  // Expanded content occupies the left side of the status
+                  // cluster, so collapse travels right; expansion travels left.
+                  rotation: statusSlot.trayExpanded ? 0 : 180
+                  scale: trayMouse.containsMouse ? 1.12 : 1
+
+                  Behavior on rotation {
+                    RotationAnimation {
+                      duration: 200
+                      direction: RotationAnimation.Shortest
+                      easing.type: Easing.InOutCubic
+                    }
+                  }
+
+                  Behavior on scale {
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                  }
+
+                  Canvas {
+                    id: trayArrowCanvas
+                    anchors.fill: parent
+
+                    onPaint: {
+                      var ctx = getContext("2d")
+                      ctx.clearRect(0, 0, width, height)
+                      ctx.beginPath()
+                      ctx.moveTo(width * 0.25, height * 0.16)
+                      ctx.lineTo(width * 0.72, height * 0.50)
+                      ctx.lineTo(width * 0.25, height * 0.84)
+                      ctx.strokeStyle = root.foreground
+                      ctx.lineWidth = Math.max(1.4, Screen.devicePixelRatio)
+                      ctx.lineCap = "round"
+                      ctx.lineJoin = "round"
+                      ctx.stroke()
+                    }
+
+                    Connections {
+                      target: root
+                      function onForegroundChanged() { trayArrowCanvas.requestPaint() }
+                    }
+                  }
                 }
 
                 MouseArea {
@@ -696,7 +759,8 @@ Item {
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onEntered: root.showTooltip(trayToggle,
-                    statusSlot.trayExpanded ? "Collapse tray" : "Expand tray")
+                    statusSlot.trayExpanded
+                      ? "Collapse tray to the right" : "Expand tray to the left")
                   onExited: root.hideTooltip(trayToggle)
                   onClicked: function(mouse) {
                     root.hideTooltip(trayToggle)

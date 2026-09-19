@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.6 - 2026-09-20
+
+- Replace the swapping tray characters with one vector chevron that rotates
+  smoothly toward the direction of the next action.
+- Animate tray width and icon opacity with coordinated easing, plus a subtle
+  hover response on the disclosure control.
+- Extend the live tray lifecycle proof to verify the settled width and arrow
+  rotation after both collapse and expansion.
+
 ## 0.4.5 - 2026-09-20
 
 - Update an existing local test installation in place instead of removing and
