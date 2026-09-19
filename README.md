@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.6.0` provides:
+Version `0.6.1` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -224,7 +224,8 @@ surface or keyboard grab behind.
 
 ## Interaction
 
-- Click a workspace number: switch to it.
+- Click a workspace number: switch to it, including empty/uncreated workspaces
+  that show just the wallpaper and your desktop widgets.
 - Scroll over the workspace strip: previous or next workspace.
 - Click an application icon: focus its window and workspace.
 - Middle-click an application icon: close the window.

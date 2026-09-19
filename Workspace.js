@@ -14,6 +14,14 @@ function workspaceIds(workspaces, minimumCount, maximumId) {
   return ids
 }
 
+function workspaceCommand(workspaceId, usingLua) {
+  var id = Number(workspaceId)
+  if (!Number.isInteger(id) || id < 1 || id > 99) return ""
+  // Quickshell adds the IPC dispatch wrapper itself. A non-existent workspace
+  // must be dispatched by number; there is no workspace object to activate yet.
+  return usingLua ? 'hl.dsp.focus({ workspace = "' + id + '" })' : "workspace " + id
+}
+
 function clientClass(client) {
   var ipc = client && client.lastIpcObject ? client.lastIpcObject : ({})
   return String(ipc.class || ipc.initialClass || ipc.appId
@@ -49,6 +57,7 @@ function moveCommand(client, workspaceId) {
 if (typeof module !== "undefined") {
   module.exports = {
     workspaceIds,
+    workspaceCommand,
     clientClass,
     clientTitle,
     clientInitial,

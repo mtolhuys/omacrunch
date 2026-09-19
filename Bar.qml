@@ -381,9 +381,12 @@ Item {
   }
 
   function focusWorkspace(id) {
-    var workspace = workspaceById(id)
+    var command = Workspace.workspaceCommand(id, Hyprland.usingLua)
+    if (!command) return false
+    var workspace = workspaceById(Number(id))
     if (workspace && typeof workspace.activate === "function") workspace.activate()
-    else Hyprland.dispatch("dispatch hl.dsp.focus({ workspace = \"" + Number(id) + "\" })")
+    else Hyprland.dispatch(command)
+    return true
   }
 
   function focusRelative(delta) {
@@ -455,6 +458,10 @@ Item {
     function trayState(): string { return root.trayState() }
 
     function trayVisualState(): string { return root.trayVisualState() }
+
+    function focusWorkspace(id: int): string {
+      return root.focusWorkspace(id) ? "requested" : "invalid"
+    }
 
     function pluginState(): string {
       return JSON.stringify(root.pluginShelves.map(function(shelf) { return shelf.state() }))

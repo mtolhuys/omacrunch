@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1 - 2026-09-20
+
+- Fix clicking empty/uncreated workspaces: pass the dispatcher expression
+  without a duplicate `dispatch` prefix and respect Hyprland's Lua mode.
+- Preserve native activation for existing workspaces. Cover absent/existing
+  workspace routing, legacy mode and invalid IDs with regression tests.
+
 ## 0.6.0 - 2026-09-20
 
 - Host configured external bar widgets in a separate, centered plugin shelf.
