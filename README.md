@@ -48,15 +48,21 @@ omarchy plugin remove io.github.mtolhuys.omacrunch --yes
 Omakit is the quality gate for this repository:
 
 ```bash
-omakit inspect . --full --json
-omakit verify . --json
-omakit submit . --category Desktop --tags bar,hyprland,launcher --json --offline
+make check
+make marketplace-check
 ```
 
 `submit --offline` performs the local marketplace checks without posting
 anything. A public GitHub origin is intentionally not required for local use;
 the submission preflight will report that missing publication metadata until
 one is configured.
+
+To validate the clean Git `HEAD`, replace any earlier local installation and
+open that exact build in one pass:
+
+```bash
+make local-test
+```
 
 ## Current scope
 
