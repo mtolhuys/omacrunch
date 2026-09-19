@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 - 2026-09-19
+
+- Wait for the asynchronous Omarchy plugin reload before probing the service
+  during `make local-test`.
+- Report a bounded, actionable readiness timeout instead of a transient
+  `Target not found` failure.
+
 ## 0.2.0 - 2026-09-19
 
 - Replace the launcher-centric prototype with a persistent desktop experience.

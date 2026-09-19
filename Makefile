@@ -25,6 +25,16 @@ install-local: remove-local
 	omarchy plugin add "$(CURDIR)" --enable --yes
 
 open:
+	@ready=0; \
+	for attempt in $$(seq 1 100); do \
+		if omarchy-shell omacrunch ping >/dev/null 2>&1; then ready=1; break; fi; \
+		sleep 0.1; \
+	done; \
+	if [ "$$ready" -ne 1 ]; then \
+		echo "Omacrunch service did not register within 10 seconds." >&2; \
+		echo "Inspect the current Quickshell log for 'service plugin load failed'." >&2; \
+		exit 1; \
+	fi
 	@echo "Omacrunch service state:"
 	omarchy-shell omacrunch state
 	omarchy-shell omacrunch menu

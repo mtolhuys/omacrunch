@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a barless, CrunchBang-inspired desktop.
 It is not a launcher skin: it changes the persistent desktop experience while
 keeping Omarchy's native Hyprland and Quickshell stack intact.
 
-Version `0.2.0` provides:
+Version `0.2.1` provides:
 
 - a truly barless shell through an intentionally empty Omarchy bar provider;
 - live CPU, memory, load, network and uptime telemetry over the wallpaper;
@@ -90,7 +90,9 @@ make local-test
 ```
 
 `make local-test` refuses a dirty worktree. This guarantees that Omarchy clones
-and runs the same commit that passed the checks.
+and runs the same commit that passed the checks. After installation it waits up
+to ten seconds for the shell's asynchronous plugin reload before probing the
+service, so a fast machine and a busy shell follow the same test path.
 
 ## Interaction
 
