@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1 - 2026-09-20
+
+- Add a compact `Crunch #!` heading beside the native Omarchy logo, aligned
+  with the menu labels. Keep the Widgets page label and existing menu behavior.
+
 ## 0.7.0 - 2026-09-20
 
 - Right-click the plugin shelf handle to arrange third-party widgets by drag

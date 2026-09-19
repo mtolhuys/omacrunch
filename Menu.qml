@@ -200,6 +200,7 @@ Item {
           RowLayout {
             width: parent.width
             height: Style.space(40)
+            spacing: Style.space(10)
 
             Text {
               Layout.leftMargin: Style.space(9)
@@ -212,7 +213,16 @@ Item {
               font.pixelSize: Style.font.title
               Accessible.name: "Omarchy"
             }
-            Item { Layout.fillWidth: true }
+            Text {
+              Layout.fillWidth: true
+              text: "Crunch #!"
+              textFormat: Text.PlainText
+              color: Color.menu.text
+              font.family: "monospace"
+              font.pixelSize: Style.font.title
+              font.bold: true
+              elide: Text.ElideRight
+            }
             Text {
               visible: root.page === "widgets"
               text: "WIDGETS"
