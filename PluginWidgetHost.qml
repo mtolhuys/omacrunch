@@ -1,5 +1,4 @@
 import QtQuick
-import qs.Ui
 
 // A mounted widget outlives the shelf's reveal animation. Only the scoped
 // public API crosses this boundary, never the host bar or another service.
@@ -63,12 +62,21 @@ Item {
     registeredItem = null
   }
 
-  PluginBarApi {
+  LegacyPluginShell {
+    id: legacyApi
+    // A scoped shell is never passed into this adapter.
+    legacyShell: host.hostBar.shell
+      && typeof host.hostBar.shell.pluginShellForBarEntry !== "function" ? host.hostBar.shell : null
+    pluginId: host.entry ? host.entry.pluginId : host.moduleId
+    moduleName: host.moduleId
+  }
+
+  PluginBarBridge {
     id: api
     pluginId: host.entry ? host.entry.pluginId : host.moduleId
     moduleName: host.moduleId
     shell: host.hostBar.shell && typeof host.hostBar.shell.pluginShellForBarEntry === "function"
-      ? host.hostBar.shell.pluginShellForBarEntry(pluginId, moduleName) : null
+      ? host.hostBar.shell.pluginShellForBarEntry(pluginId, moduleName) : legacyApi
     foreground: host.hostBar.foreground
     barForeground: host.hostBar.barForeground
     background: host.hostBar.background

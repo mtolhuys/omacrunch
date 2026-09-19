@@ -2,14 +2,15 @@ SHELL := /bin/bash
 
 PLUGIN_ID := io.github.mtolhuys.omacrunch
 PLUGIN_DIR := $(HOME)/.config/omarchy/plugins/$(PLUGIN_ID)
-OMARCHY_SHELL_DIR ?= /usr/share/omarchy/shell
+OMARCHY_SHELL_DIR ?= $(if $(OMARCHY_PATH),$(OMARCHY_PATH)/shell,/usr/share/omarchy/shell)
+export OMARCHY_SHELL_DIR
 
 .PHONY: check marketplace-check install-local open local-test remove-local
 
 check:
 	@test -z "$$(git status --porcelain)" || { echo "Refusing to test a dirty worktree; commit the version you want Omarchy to clone." >&2; exit 1; }
 	omarchy plugin validate .
-	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml DesktopWidget.qml WidgetStore.qml WidgetFeed.qml WidgetContent.qml PluginShelf.qml PluginWidgetHost.qml
+	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml DesktopWidget.qml WidgetStore.qml WidgetFeed.qml WidgetContent.qml PluginShelf.qml PluginWidgetHost.qml PluginBarBridge.qml LegacyPluginShell.qml
 	node tests/metrics.test.js
 	node tests/contrast.test.js
 	node tests/tone-sample.test.js
@@ -20,6 +21,9 @@ check:
 	python3 -B tests/widget-data.test.py
 	bash tests/widget-ui.sh
 	bash tests/plugin-shelf-ui.sh
+	@if [ "$(OMARCHY_SHELL_DIR)" != /usr/share/omarchy/shell ]; then \
+		OMARCHY_SHELL_DIR=/usr/share/omarchy/shell bash tests/plugin-shelf-ui.sh; \
+	fi
 	omakit inspect . --full
 	omakit verify .
 

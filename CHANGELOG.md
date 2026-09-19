@@ -12,6 +12,8 @@
   updates, overflow and removal in an isolated offscreen Quickshell instance.
 - Document Omarchy's service-less replacement-bar facade limitation instead
   of bypassing it or claiming universal third-party compatibility.
+- Support older/dev host contracts with a local bar facade and own-plugin-only
+  service adapter; validate both the active dev shell and installed shell.
 
 ## 0.5.0 - 2026-09-20
 

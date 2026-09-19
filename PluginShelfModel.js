@@ -1,6 +1,14 @@
 // Only enabled, configured external bar widgets belong here. The public
 // registry is authoritative; never scan/load another plugin from its path.
-function entries(config, widgets, selfId) {
+function isExternal(metadata, manifests, id) {
+  if (!metadata || metadata.source !== "plugin") return false
+  if (metadata.firstParty !== undefined) return metadata.firstParty === false
+  // Older hosts put this classification on the injected registry manifest.
+  var manifest = manifests && manifests[id]
+  return !!manifest && manifest.__isFirstParty === false
+}
+
+function entries(config, widgets, selfId, manifests) {
   var result = [], seen = Object.create(null)
   var layout = config && config.layout ? config.layout : {}
   ;["left", "center", "right"].forEach(function(region) {
@@ -10,8 +18,8 @@ function entries(config, widgets, selfId) {
       var id = entry && typeof entry.id === "string" ? entry.id : ""
       var record = widgets && widgets[id]
       var metadata = record && record.metadata
-      if (!id || seen[id] || id === selfId || !record || !record.component || !metadata
-          || metadata.firstParty !== false || metadata.source !== "plugin") return
+      if (!id || seen[id] || id === selfId || !record || !record.component
+          || !isExternal(metadata, manifests, id)) return
       seen[id] = true
       var settings = Object.assign({}, metadata.defaults || {}, entry, { id: id })
       result.push({ id: id, pluginId: String(metadata.pluginId || id), settings: settings,

@@ -81,13 +81,19 @@ widget releases its click targets and open popout.
 
 Compatibility is bounded by Omarchy's public replacement-bar API:
 
-- Widgets receive the official `Ui.PluginBarApi`, including scoped shell
-  actions, settings updates, tooltips and popout coordination.
-- Replacement bars currently receive **service-less** shell entry facades.
+- Widgets receive a local implementation of the public `PluginBarApi` contract,
+  including scoped shell actions, settings updates, tooltips and popout
+  coordination. This also works on shells without the `Ui.PluginBarApi` type.
+- On older/dev hosts that directly inject the public shell, an adapter exposes
+  only a widget's **own** service, panel and settings methods. This supports
+  service-backed widgets on the current local development shell.
+- Newer capability-scoped hosts provide **service-less** shell entry facades.
   Widgets requiring `bar.shell.serviceFor(theirId)` (for example Disk Lens
   and News Readers) may render, but their service-backed features are not
-  available through this API. This is not full compatibility with every plugin.
-- Omacrunch does not bypass this boundary, read another plugin's private
+  available through that API. This is not full compatibility with every plugin
+  on every host version. When a scoped factory exists, its refusal is never
+  worked around by falling back to the legacy adapter.
+- Omacrunch does not bypass this boundary, traverse another plugin's private
   objects, instantiate a duplicate service or modify Omarchy core.
 - Hosted third-party code retains its own network/process/resource behaviour;
   hiding it is visual, not suspension or a security sandbox.
@@ -177,6 +183,10 @@ Omakit is the quality gate for this repository. The regular check also runs
 Omarchy manifest validation, QML static analysis, deterministic unit tests for
 the `/proc` parsers and wallpaper contrast algorithm, plus regression tests for
 the replacement-bar and menu-focus contracts:
+
+QML checks use `$OMARCHY_PATH/shell` by default (including a linked development
+shell), with an explicit `OMARCHY_SHELL_DIR` override available. The shelf UI
+test also runs against the installed `/usr/share/omarchy/shell` when different.
 
 ```bash
 make check

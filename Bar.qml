@@ -52,7 +52,8 @@ Item {
   property bool tooltipShown: false
 
   readonly property var pluginEntries: ShelfModel.entries(barConfig,
-    barWidgetRegistry ? barWidgetRegistry.widgets : {}, pluginId)
+    barWidgetRegistry ? barWidgetRegistry.widgets : {}, pluginId,
+    pluginRegistry ? pluginRegistry.installedPlugins : {})
 
   readonly property var statusModules: [
     { id: "omarchy.tray", region: "right" },
