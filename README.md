@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.7.1` provides:
+Version `0.7.2` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -72,7 +72,10 @@ To reorder: **right-click the three dots**, then drag an icon to the insertion
 line and release. Click **✓** to finish. Normal clicks, wheels and plugin
 gestures are untouched outside arrange mode; in that mode they cannot
 accidentally launch a plugin. Close open plugin panels before arranging.
-Dropping outside the strip cancels the move. A registry change cancels an
+While dragging, a 24-logical-pixel drop tolerance around the thin strip accepts
+natural diagonal movements and slight overshoot. Dropping farther away cancels
+the move. This only affects an already-grabbed drag, not normal desktop input.
+A registry change cancels an
 in-progress drag. Narrow bars scroll automatically when dragging at an edge.
 
 Every successful drop saves a shared order for all monitors, surviving shell

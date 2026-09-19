@@ -17,6 +17,8 @@ Item {
   property real markerX: 0
   property bool validDrop: false
   property string lastGesture: "idle"
+  property int gestureSerial: 0
+  readonly property real dropTolerance: 24
   readonly property bool expanded: entryIds.length > 0 && (pinned || peek || panelHeld || arranging)
   readonly property bool orderReady: hostBar.pluginOrderStore.loaded && !hostBar.pluginOrderStore.saving
   readonly property bool overflow: widgetsRow.width > Math.max(0, openWidth - handleWidth - 8) + 1
@@ -66,6 +68,7 @@ Item {
   }
 
   function startDrag(point) {
+    gestureSerial++
     lastGesture = "press:" + Math.round(point)
     if (!arranging || !orderReady || panelHeld) { lastGesture += ":blocked"; return }
     var item = hostAt(point + viewport.contentX)
@@ -79,7 +82,10 @@ Item {
   function updateDrag(point, y) {
     if (!dragId) return
     dragX = point + viewport.contentX - dragOffset
-    validDrop = point >= 0 && point <= viewport.width && y >= 0 && y <= height
+    // Keep a modest drop lane around the thin bar while it owns the pointer
+    // grab. No extra input surface is created; ordinary windows remain untouched.
+    validDrop = point >= -dropTolerance && point <= viewport.width + dropTolerance
+      && y >= -dropTolerance && y <= height + dropTolerance
     dropBeforeId = ""
     markerX = widgetsRow.width
     for (var index = 0; index < hosts.count; index++) {
@@ -123,7 +129,8 @@ Item {
   function state() {
     var inputPoint = arrangeMouse.mapToItem(shelf, 0, 0)
     return { screen: screenName, ids: entryIds, expanded: expanded, pinned: pinned,
-      gesture: lastGesture, input: {x: shelf.x + inputPoint.x, y: inputPoint.y,
+      gesture: lastGesture, gestureSerial: gestureSerial,
+      input: {x: shelf.x + inputPoint.x, y: inputPoint.y,
         width: arrangeMouse.width, height: arrangeMouse.height,
         enabled: arrangeMouse.enabled, visible: arrangeMouse.visible, pressed: arrangeMouse.pressed},
       arranging: arranging, dragging: dragId, orderReady: orderReady,

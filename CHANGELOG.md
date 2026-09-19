@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.2 - 2026-09-20
+
+- Accept drops slightly outside the thin plugin strip while it owns the pointer
+  grab. Previously a small vertical deviation silently rejected the entire move.
+- Add diagonal/overshoot regressions alongside far-away cancellation tests and
+  live pointer diagnostics to distinguish input, cancellation and persistence.
+
 ## 0.7.1 - 2026-09-20
 
 - Add a compact `Crunch #!` heading beside the native Omarchy logo, aligned
