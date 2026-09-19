@@ -7,6 +7,7 @@ import Quickshell.Services.SystemTray
 import Quickshell.Wayland
 import qs.Commons
 import "Workspace.js" as Workspace
+import "PluginShelfModel.js" as ShelfModel
 
 // A full Tint2-style bar rather than a row of unrelated widgets. Workspaces
 // own their windows, while Omarchy's mature status widgets keep providing the
@@ -45,9 +46,13 @@ Item {
   property var liveBarWindows: []
   property var liveWidgets: []
   property var trayControls: []
+  property var pluginShelves: []
   property var tooltipTarget: null
   property string tooltipText: ""
   property bool tooltipShown: false
+
+  readonly property var pluginEntries: ShelfModel.entries(barConfig,
+    barWidgetRegistry ? barWidgetRegistry.widgets : {}, pluginId)
 
   readonly property var statusModules: [
     { id: "omarchy.tray", region: "right" },
@@ -58,9 +63,38 @@ Item {
   ]
   readonly property var layoutConfig: ({
     left: [{ id: "omacrunch.menu" }, { id: "omacrunch.workspaces" }],
-    center: [],
+    center: pluginEntries.map(function(entry) { return entry.settings }),
     right: statusModules
   })
+
+  function pluginEntry(id) {
+    return pluginEntries.find(function(entry) { return entry.id === id }) || null
+  }
+
+  function registerShelf(shelf) {
+    if (pluginShelves.indexOf(shelf) < 0) pluginShelves = pluginShelves.concat([shelf])
+  }
+
+  function unregisterShelf(shelf) {
+    pluginShelves = pluginShelves.filter(function(candidate) { return candidate !== shelf })
+  }
+
+  function focusedShelf() {
+    var focused = focusedScreenName()
+    return pluginShelves.find(function(shelf) { return shelf.screenName === focused })
+      || pluginShelves[0] || null
+  }
+
+  function switchPluginPanel(id, screenName, direction) {
+    var panels = liveWidgets.filter(function(record) {
+      return record.region === "center" && record.screenName === screenName && record.item
+        && typeof record.item.open === "function" && typeof record.item.close === "function"
+    })
+    var current = panels.findIndex(function(record) { return record.id === id })
+    if (current < 0 || panels.length < 2) return false
+    panels[(current + (direction < 0 ? -1 : 1) + panels.length) % panels.length].item.open()
+    return true
+  }
 
   function widgetComponent(id) {
     var widgets = barWidgetRegistry && barWidgetRegistry.widgets
@@ -251,8 +285,11 @@ Item {
   }
 
   function panelWidgetIdAt(section, index) {
-    if (String(section || "") !== "right") return ""
-    var panels = ["omarchy.network", "omarchy.audio", "omarchy.power", "omarchy.clock"]
+    var panels = String(section || "") === "center"
+      ? pluginEntries.filter(function(entry) { return root.findPanelWidget(entry.id) !== null })
+        .map(function(entry) { return entry.id })
+      : (String(section || "") === "right"
+        ? ["omarchy.network", "omarchy.audio", "omarchy.power", "omarchy.clock"] : [])
     var position = Math.round(Number(index)) - 1
     return position >= 0 && position < panels.length ? panels[position] : ""
   }
@@ -280,6 +317,7 @@ Item {
   }
 
   function requestPopout(owner) {
+    hideTooltip(null)
     if (activePopout && activePopout !== owner) {
       if (typeof activePopout.closeForPopoutSwitch === "function") activePopout.closeForPopoutSwitch()
       else if (typeof activePopout.close === "function") activePopout.close()
@@ -306,11 +344,13 @@ Item {
   function showTooltip(target, text) {
     tooltipTarget = target
     tooltipText = String(text || "")
-    tooltipShown = tooltipText !== ""
+    tooltipShown = false
+    tooltipDelay.restart()
   }
 
   function hideTooltip(target) {
     if (target && tooltipTarget !== target) return
+    tooltipDelay.stop()
     tooltipTarget = null
     tooltipText = ""
     tooltipShown = false
@@ -384,6 +424,12 @@ Item {
     }))
   }
 
+  Timer {
+    id: tooltipDelay
+    interval: 600
+    onTriggered: root.tooltipShown = root.tooltipTarget !== null && root.tooltipText !== ""
+  }
+
   IpcHandler {
     target: "omacrunch-bar"
 
@@ -406,6 +452,17 @@ Item {
     function trayState(): string { return root.trayState() }
 
     function trayVisualState(): string { return root.trayVisualState() }
+
+    function pluginState(): string {
+      return JSON.stringify(root.pluginShelves.map(function(shelf) { return shelf.state() }))
+    }
+
+    function pinPlugins(value: bool): string {
+      var shelf = root.focusedShelf()
+      if (!shelf) return "missing"
+      shelf.pinned = value
+      return value ? "pinned" : "auto"
+    }
   }
 
   Variants {
@@ -476,7 +533,7 @@ Item {
 
         Item {
           id: workspaceViewport
-          Layout.fillWidth: true
+          Layout.preferredWidth: Math.min(workspaceRow.implicitWidth, barWindow.width * 0.45)
           Layout.fillHeight: true
           clip: true
 
@@ -625,6 +682,15 @@ Item {
               wheel.accepted = true
             }
           }
+        }
+
+        PluginShelf {
+          hostBar: root
+          screenName: String(barWindow.screen.name || "")
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          Component.onCompleted: root.registerShelf(this)
+          Component.onDestruction: root.unregisterShelf(this)
         }
 
         Rectangle {
@@ -794,6 +860,50 @@ Item {
                 if (isTray) root.unregisterTrayControl(statusSlot)
               }
             }
+          }
+        }
+      }
+
+      PopupWindow {
+        id: tooltipWindow
+        visible: root.tooltipShown && root.tooltipTarget !== null
+          && root.targetBelongsToWindow(root.tooltipTarget, barWindow)
+        color: "transparent"
+        implicitWidth: Math.min(barWindow.width - 12, tooltipLabel.implicitWidth + 20)
+        implicitHeight: tooltipLabel.implicitHeight + 14
+        anchor {
+          id: tooltipAnchor
+          window: barWindow
+          adjustment: PopupAdjustment.Slide
+          edges: Edges.Top | Edges.Left
+          gravity: Edges.Bottom | Edges.Right
+          rect.width: 1
+          rect.height: 1
+          onAnchoring: {
+            var target = root.tooltipTarget
+            if (!root.targetBelongsToWindow(target, barWindow)) return
+            var point = barWindow.contentItem.mapFromItem(target,
+              target.width / 2 - tooltipWindow.width / 2, target.height + 6)
+            tooltipAnchor.rect.x = Math.round(point.x)
+            tooltipAnchor.rect.y = Math.round(point.y)
+          }
+        }
+        Rectangle {
+          anchors.fill: parent
+          color: Color.tooltip.background
+          border.color: Color.tooltip.border
+          border.width: 1
+          radius: 3
+          Text {
+            id: tooltipLabel
+            anchors.centerIn: parent
+            width: Math.min(implicitWidth, tooltipWindow.width - 20)
+            text: root.tooltipText
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            color: Color.tooltip.text
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
           }
         }
       }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 - 2026-09-20
+
+- Host configured external bar widgets in a separate, centered plugin shelf.
+- Add a stationary subtle hover handle, animated reveal, delayed hide and
+  per-monitor session pinning. Open panels hold their anchor in place.
+- Preserve registry components, scoped APIs, existing order/settings and live
+  widget instances across hide/reveal and settings-only changes.
+- Add overflow navigation, popout/target cleanup and native-style tooltips.
+- Test real hover/click gestures, pinning, panel hold, API scoping, settings
+  updates, overflow and removal in an isolated offscreen Quickshell instance.
+- Document Omarchy's service-less replacement-bar facade limitation instead
+  of bypassing it or claiming universal third-party compatibility.
+
 ## 0.5.0 - 2026-09-20
 
 - Add a Widgets submenu with per-monitor visibility for System Monitor,
