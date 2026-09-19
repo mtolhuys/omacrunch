@@ -11,7 +11,8 @@ packaged `/usr/share/omarchy/shell` components:
 - Left/right moves with mixed widget widths; insertion feedback and animation.
 - No accidental panel activation or forwarded clicks while arranging.
 - Existing widget instances survive moves; a second shelf follows the order.
-- Release outside the strip and registry changes cancel a pending move.
+- Release outside the strip and registry changes cancel a pending move
+  (0.7.2 adds a small drop margin; see the follow-up below).
 - Overflow-edge autoscroll, panel-anchor hold, pin state preserved.
 - Atomic order save and fresh-store readback; failed writes roll back and
   report an error instead of claiming persistence.
@@ -21,6 +22,9 @@ packaged `/usr/share/omarchy/shell` components:
 Commands: `node tests/plugin-shelf.test.js`, `bash tests/plugin-shelf-ui.sh`,
 `OMARCHY_SHELL_DIR="$OMARCHY_PATH/shell" bash tests/plugin-shelf-ui.sh`.
 The full suite and installed-shell smoke tests are wired into `make local-test`.
+
+Follow-up: [0.7.2 native drag reproduction and fix](plugin-drag-fix-2026-09-20.md)
+documents the narrow drop-boundary bug missed by this original fixture.
 
 Omakit audit: local installation is **unlisted**, with no modified/disabled
 or upstream-moved flags. Official baseline is **not run** without a declared
