@@ -40,6 +40,7 @@ Item {
   property var clickTargets: []
   property var liveBarWindows: []
   property var liveWidgets: []
+  property var trayControls: []
   property var tooltipTarget: null
   property string tooltipText: ""
   property bool tooltipShown: false
@@ -104,6 +105,38 @@ Item {
   function unregisterWidget(item) {
     if (!item) return
     liveWidgets = liveWidgets.filter(function(record) { return record.item !== item })
+  }
+
+  function registerTrayControl(control, screenName) {
+    if (!control) return
+    unregisterTrayControl(control)
+    var next = trayControls.slice()
+    next.push({ control: control, screenName: String(screenName || "") })
+    trayControls = next
+  }
+
+  function unregisterTrayControl(control) {
+    trayControls = trayControls.filter(function(record) { return record.control !== control })
+  }
+
+  function focusedTrayControl() {
+    if (!trayControls.length) return null
+    var focused = focusedScreenName()
+    for (var index = 0; index < trayControls.length; index++)
+      if (trayControls[index].screenName === focused) return trayControls[index].control
+    return trayControls[0].control
+  }
+
+  function toggleTray() {
+    var control = focusedTrayControl()
+    if (!control) return false
+    control.trayExpanded = !control.trayExpanded
+    return true
+  }
+
+  function trayState() {
+    var control = focusedTrayControl()
+    return control && control.trayExpanded ? "expanded" : (control ? "collapsed" : "missing")
   }
 
   function registerBarWindow(window) {
@@ -350,6 +383,12 @@ Item {
         focusedWorkspace: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
       })
     }
+
+    function toggleTray(): string {
+      return root.toggleTray() ? root.trayState() : "missing"
+    }
+
+    function trayState(): string { return root.trayState() }
   }
 
   Variants {
@@ -575,29 +614,96 @@ Item {
           Repeater {
             model: root.statusModules
 
-            delegate: Loader {
-              id: statusLoader
+            delegate: Item {
+              id: statusSlot
               required property var modelData
               property string moduleId: String(modelData.id)
               property string region: String(modelData.region)
               property var registeredItem: null
+              property bool trayExpanded: true
+              readonly property bool isTray: moduleId === "omarchy.tray"
+              readonly property real nativeWidth: statusLoader.item
+                && statusLoader.item.visible !== false ? statusLoader.item.implicitWidth : 0
+              readonly property real toggleWidth: Style.bar.iconSlot
 
-              active: root.widgetComponent(moduleId) !== null
-              sourceComponent: root.widgetComponent(moduleId)
-              // Keep the host visible so the loaded item's own `visible`
-              // decision remains independent. Binding the Loader visibility
-              // back to item.visible creates a one-way trap: an initially
-              // empty Loader hides its child as soon as it is constructed.
-              Layout.preferredWidth: item && item.visible !== false ? item.implicitWidth : 0
+              Layout.preferredWidth: isTray && nativeWidth > 0
+                ? (trayExpanded ? nativeWidth : toggleWidth) : nativeWidth
               Layout.preferredHeight: root.barSize
+              Layout.fillHeight: true
               visible: true
+              clip: isTray
 
-              onItemChanged: {
-                if (registeredItem && registeredItem !== item) root.unregisterWidget(registeredItem)
-                registeredItem = item
-                if (item) root.configureWidget(statusLoader, String(barWindow.screen.name || ""))
+              Loader {
+                id: statusLoader
+                property string moduleId: statusSlot.moduleId
+                property string region: statusSlot.region
+
+                active: root.widgetComponent(moduleId) !== null
+                sourceComponent: root.widgetComponent(moduleId)
+                width: item ? item.implicitWidth : 0
+                height: root.barSize
+                // Keep the host visible so the loaded item's own `visible`
+                // decision remains independent. Binding Loader visibility
+                // back to item.visible traps an initially hidden child.
+                visible: true
+
+                onItemChanged: {
+                  if (statusSlot.registeredItem && statusSlot.registeredItem !== item)
+                    root.unregisterWidget(statusSlot.registeredItem)
+                  statusSlot.registeredItem = item
+                  if (item) root.configureWidget(statusLoader, String(barWindow.screen.name || ""))
+                }
               }
-              Component.onDestruction: root.unregisterWidget(registeredItem)
+
+              Item {
+                id: trayToggle
+                z: 10
+                visible: statusSlot.isTray && statusSlot.nativeWidth > 0
+                width: statusSlot.toggleWidth
+                height: root.barSize
+
+                Rectangle {
+                  anchors.fill: parent
+                  color: trayMouse.containsMouse ? Util.alpha(root.foreground, 0.10) : "transparent"
+                }
+
+                Text {
+                  anchors.centerIn: parent
+                  text: statusSlot.trayExpanded ? "\uf053" : "\uf054"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+                  textFormat: Text.PlainText
+                }
+
+                MouseArea {
+                  id: trayMouse
+                  anchors.fill: parent
+                  acceptedButtons: Qt.LeftButton | Qt.RightButton
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onEntered: root.showTooltip(trayToggle,
+                    statusSlot.trayExpanded ? "Collapse tray" : "Expand tray")
+                  onExited: root.hideTooltip(trayToggle)
+                  onClicked: function(mouse) {
+                    root.hideTooltip(trayToggle)
+                    if (mouse.button === Qt.RightButton && statusLoader.item
+                        && "managePopupOpen" in statusLoader.item) {
+                      statusLoader.item.managePopupOpen = !statusLoader.item.managePopupOpen
+                    } else if (mouse.button === Qt.LeftButton) {
+                      statusSlot.trayExpanded = !statusSlot.trayExpanded
+                    }
+                  }
+                }
+              }
+
+              Component.onCompleted: {
+                if (isTray) root.registerTrayControl(statusSlot, String(barWindow.screen.name || ""))
+              }
+              Component.onDestruction: {
+                root.unregisterWidget(registeredItem)
+                if (isTray) root.unregisterTrayControl(statusSlot)
+              }
             }
           }
         }

@@ -54,6 +54,16 @@ open:
 		exit 1; \
 	fi; \
 	echo "Omacrunch bar state: $$bar_state"
+	@if [ "$$(omarchy-shell omacrunch-bar trayState)" != "expanded" ]; then \
+		echo "Omacrunch tray did not start expanded." >&2; exit 1; \
+	fi
+	@if [ "$$(omarchy-shell omacrunch-bar toggleTray)" != "collapsed" ]; then \
+		echo "Omacrunch tray disclosure did not collapse." >&2; exit 1; \
+	fi
+	@if [ "$$(omarchy-shell omacrunch-bar toggleTray)" != "expanded" ]; then \
+		echo "Omacrunch tray disclosure did not expand." >&2; exit 1; \
+	fi
+	@echo "Omacrunch tray lifecycle: expanded -> collapsed -> expanded"
 	@echo "Omacrunch service state:"
 	@tone_ready=0; \
 	for attempt in $$(seq 1 100); do \

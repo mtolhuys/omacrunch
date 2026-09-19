@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2 - 2026-09-20
+
+- Turn the tray chevron into a real disclosure control instead of leaving the
+  upstream hover-only button visible beside an already pinned tray.
+- Left-click now collapses or expands the complete tray icon cluster, with a
+  directional `‹`/`›` state; right-click still opens native tray management.
+- Add a live tray lifecycle proof to `make local-test`.
+
 ## 0.4.1 - 2026-09-20
 
 - Remove the large adaptive backdrop that turned mixed wallpapers into a grey
