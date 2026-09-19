@@ -1,12 +1,15 @@
 import QtQuick
+import Quickshell.Io
 import "Contrast.js" as Contrast
 
-// Samples the exact wallpaper crop behind the telemetry block. The canvas is
-// intentionally tiny: it captures luminance distribution, not visual detail.
+// Samples the exact wallpaper crop behind the telemetry block. ImageMagick
+// emits a quantized histogram with at most 16 lines, so analysis is bounded
+// and independent of whether the compositor schedules a hidden Canvas frame.
 Item {
   id: root
 
-  property url source
+  property string sourcePath
+  property int revision: 0
   property real screenWidth: 1
   property real screenHeight: 1
   property rect sampleRect: Qt.rect(0, 0, 1, 1)
@@ -17,67 +20,105 @@ Item {
   property real scrimOpacity: 0.18
   property real measuredContrast: 1
   property real measuredSpread: 1
+  property bool analyzed: false
+  property int attempts: 0
+  property var histogramPixels: []
 
-  width: 40
-  height: 64
-  opacity: 0.001
+  width: 1
+  height: 1
+  visible: false
 
-  function requestAnalysis() {
-    if (wallpaper.status === Image.Ready) sampler.requestPaint()
+  function geometry() {
+    var screen = Math.max(1, Math.round(screenWidth)) + "x"
+      + Math.max(1, Math.round(screenHeight))
+    var x = Math.max(0, Math.round(sampleRect.x))
+    var y = Math.max(0, Math.round(sampleRect.y))
+    var width = Math.max(1, Math.min(Math.round(sampleRect.width), Math.round(screenWidth) - x))
+    var height = Math.max(1, Math.min(Math.round(sampleRect.height), Math.round(screenHeight) - y))
+    return { screen: screen, crop: width + "x" + height + "+" + x + "+" + y }
   }
 
-  onScreenWidthChanged: requestAnalysis()
-  onScreenHeightChanged: requestAnalysis()
-  onSampleRectChanged: requestAnalysis()
-  onLightCandidateChanged: requestAnalysis()
-  onDarkCandidateChanged: requestAnalysis()
-
-  Image {
-    id: wallpaper
-    source: root.source
-    sourceSize.width: 640
-    asynchronous: true
-    cache: false
-    visible: false
-    onStatusChanged: if (status === Image.Ready) Qt.callLater(root.requestAnalysis)
+  function schedule() {
+    analyzed = false
+    refreshDebounce.restart()
   }
 
-  Canvas {
-    id: sampler
-    anchors.fill: parent
-    renderTarget: Canvas.Image
-    antialiasing: false
+  function refresh() {
+    if (!sourcePath || screenWidth <= 0 || screenHeight <= 0) return
+    if (toneProcess.running) toneProcess.running = false
+    attempts += 1
+    histogramPixels = []
+    toneProcess.running = true
+    processDeadline.restart()
+  }
 
-    onPaint: {
-      if (wallpaper.status !== Image.Ready) return
-      var imageWidth = wallpaper.sourceSize.width
-      var imageHeight = wallpaper.sourceSize.height
-      if (imageWidth <= 0 || imageHeight <= 0 || root.screenWidth <= 0 || root.screenHeight <= 0) return
+  function acceptHistogramLine(line) {
+    var match = String(line || "").match(/^\s*(\d+):.*#([0-9a-f]{6})\b/i)
+    if (!match) return
+    var count = Math.min(2560, parseInt(match[1], 10) || 0)
+    var red = parseInt(match[2].slice(0, 2), 16)
+    var green = parseInt(match[2].slice(2, 4), 16)
+    var blue = parseInt(match[2].slice(4, 6), 16)
+    for (var index = 0; index < count; index++) histogramPixels.push(red, green, blue, 255)
+  }
 
-      var scale = Math.max(root.screenWidth / imageWidth, root.screenHeight / imageHeight)
-      var fittedWidth = imageWidth * scale
-      var fittedHeight = imageHeight * scale
-      var fittedX = (root.screenWidth - fittedWidth) / 2
-      var fittedY = (root.screenHeight - fittedHeight) / 2
-      var sourceX = Math.max(0, (root.sampleRect.x - fittedX) / scale)
-      var sourceY = Math.max(0, (root.sampleRect.y - fittedY) / scale)
-      var sourceWidth = Math.min(imageWidth - sourceX, root.sampleRect.width / scale)
-      var sourceHeight = Math.min(imageHeight - sourceY, root.sampleRect.height / scale)
-      if (sourceWidth <= 0 || sourceHeight <= 0) return
+  function finishHistogram() {
+    if (!histogramPixels.length) return
 
-      var context = getContext("2d")
-      context.clearRect(0, 0, width, height)
-      context.drawImage(wallpaper, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height)
-      var result = Contrast.analyze(
-        context.getImageData(0, 0, width, height).data,
-        root.lightCandidate,
-        root.darkCandidate
-      )
-      root.ink = result.useLight ? root.lightCandidate : root.darkCandidate
-      root.scrimColor = result.useLight ? "#000000" : "#ffffff"
-      root.scrimOpacity = result.scrimOpacity
-      root.measuredContrast = result.minimumContrast
-      root.measuredSpread = result.spread
+    var result = Contrast.analyze(histogramPixels, lightCandidate, darkCandidate)
+    ink = result.useLight ? lightCandidate : darkCandidate
+    scrimColor = result.useLight ? "#000000" : "#ffffff"
+    scrimOpacity = result.scrimOpacity
+    measuredContrast = result.minimumContrast
+    measuredSpread = result.spread
+    analyzed = true
+  }
+
+  onSourcePathChanged: schedule()
+  onRevisionChanged: schedule()
+  onScreenWidthChanged: schedule()
+  onScreenHeightChanged: schedule()
+  onSampleRectChanged: schedule()
+  onLightCandidateChanged: schedule()
+  onDarkCandidateChanged: schedule()
+  Component.onCompleted: schedule()
+
+  Timer {
+    id: refreshDebounce
+    interval: 100
+    onTriggered: root.refresh()
+  }
+
+  Timer {
+    id: processDeadline
+    interval: 5000
+    onTriggered: if (toneProcess.running) toneProcess.running = false
+  }
+
+  Process {
+    id: toneProcess
+    command: {
+      var area = root.geometry()
+      return [
+        "/usr/bin/magick", root.sourcePath,
+        "-auto-orient",
+        "-resize", area.screen + "^",
+        "-gravity", "center",
+        "-extent", area.screen,
+        "-gravity", "NorthWest",
+        "-crop", area.crop,
+        "+repage",
+        "-resize", "40x64!",
+        "-colorspace", "sRGB",
+        "-colors", "16",
+        "-format", "%c",
+        "histogram:info:-"
+      ]
     }
+    stdout: SplitParser {
+      onRead: function(line) { root.acceptHistogramLine(line) }
+    }
+    onExited: root.finishHistogram()
+    onRunningChanged: if (!running) processDeadline.stop()
   }
 }

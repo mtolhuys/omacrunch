@@ -43,7 +43,29 @@ open:
 		exit 1; \
 	fi
 	@echo "Omacrunch service state:"
+	@tone_ready=0; \
+	for attempt in $$(seq 1 100); do \
+		if [ "$$(omarchy-shell omacrunch toneState 2>/dev/null)" = "ready" ]; then tone_ready=1; break; fi; \
+		sleep 0.1; \
+	done; \
+	if [ "$$tone_ready" -ne 1 ]; then \
+		echo "Omacrunch did not analyze the active wallpaper within 10 seconds." >&2; \
+		omarchy-shell omacrunch toneDebug >&2 || true; \
+		exit 1; \
+	fi
 	omarchy-shell omacrunch state
+	@omarchy-shell omacrunch refreshTone >/dev/null
+	@tone_refreshed=0; \
+	for attempt in $$(seq 1 100); do \
+		if [ "$$(omarchy-shell omacrunch toneState 2>/dev/null)" = "ready" ]; then tone_refreshed=1; break; fi; \
+		sleep 0.1; \
+	done; \
+	if [ "$$tone_refreshed" -ne 1 ]; then \
+		echo "Omacrunch did not re-analyze the wallpaper after a refresh signal." >&2; \
+		omarchy-shell omacrunch toneDebug >&2 || true; \
+		exit 1; \
+	fi
+	@echo "Omacrunch wallpaper lifecycle: initial -> refreshed"
 	@omarchy-shell shell summon "$(PLUGIN_ID)" '{}'
 	@menu_ready=0; \
 	for attempt in $$(seq 1 30); do \

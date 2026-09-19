@@ -38,6 +38,8 @@ Item {
   property real scrimOpacity: 0.18
   property real wallpaperContrast: 1
   property real wallpaperSpread: 1
+  property bool wallpaperAnalyzed: false
+  property int wallpaperAnalysisAttempts: 0
   readonly property color quietInk: Util.alpha(ink, 0.60)
   readonly property color faintInk: Util.alpha(ink, 0.26)
   readonly property color outlineInk: Util.alpha(scrimColor, 0.86)
@@ -154,12 +156,15 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.3.0",
+        version: manifest && manifest.version ? String(manifest.version) : "0.3.1",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
         hostname: root.hostname,
+        wallpaperAnalyzed: root.wallpaperAnalyzed,
+        wallpaperInk: String(root.ink),
         wallpaperContrast: Number(root.wallpaperContrast.toFixed(2)),
+        wallpaperSpread: Number(root.wallpaperSpread.toFixed(2)),
         scrimOpacity: Number(root.scrimOpacity.toFixed(2))
       })
     }
@@ -172,6 +177,24 @@ Item {
     function menuState(): string {
       return root.shell && typeof root.shell.isPluginOpen === "function"
         && root.shell.isPluginOpen(root.pluginId) ? "open" : "closed"
+    }
+
+    function toneState(): string {
+      return root.wallpaperAnalyzed ? "ready" : "pending"
+    }
+
+    function toneDebug(): string {
+      return JSON.stringify({
+        sourceConfigured: root.currentBackground.length > 0,
+        attempts: root.wallpaperAnalysisAttempts,
+        analyzed: root.wallpaperAnalyzed
+      })
+    }
+
+    function refreshTone(): string {
+      root.wallpaperAnalyzed = false
+      root.wallpaperRevision += 1
+      return "ok"
     }
   }
 
@@ -192,9 +215,11 @@ Item {
 
       WallpaperTone {
         id: wallpaperTone
-        x: -width
-        y: -height
-        source: Util.fileUrl(root.currentBackground) + "?v=" + root.wallpaperRevision
+        x: monitorColumn.x
+        y: monitorColumn.y
+        z: 0
+        sourcePath: root.currentBackground
+        revision: root.wallpaperRevision
         screenWidth: desktop.width
         screenHeight: desktop.height
         sampleRect: Qt.rect(
@@ -210,10 +235,13 @@ Item {
         onScrimOpacityChanged: root.scrimOpacity = scrimOpacity
         onMeasuredContrastChanged: root.wallpaperContrast = measuredContrast
         onMeasuredSpreadChanged: root.wallpaperSpread = measuredSpread
+        onAnalyzedChanged: root.wallpaperAnalyzed = analyzed
+        onAttemptsChanged: root.wallpaperAnalysisAttempts = attempts
       }
 
       MouseArea {
         anchors.fill: parent
+        z: 3
         acceptedButtons: Qt.RightButton
         onClicked: function(mouse) {
           root.openMenu(mouse.x, mouse.y)
@@ -222,6 +250,7 @@ Item {
       }
 
       Rectangle {
+        z: 1
         x: monitorColumn.x - Style.space(22)
         y: monitorColumn.y - Style.space(18)
         width: monitorColumn.width + Style.space(44)
@@ -232,6 +261,7 @@ Item {
 
       ColumnLayout {
         id: monitorColumn
+        z: 2
         width: Math.min(Style.space(360), desktop.width * 0.34)
         anchors.top: parent.top
         anchors.right: parent.right

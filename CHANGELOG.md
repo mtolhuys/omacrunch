@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1 - 2026-09-19
+
+- Replace the compositor-dependent Canvas sampler with a bounded 16-colour
+  histogram of the exact wallpaper region behind the monitor.
+- Expose the sampler's readiness over IPC and make the local runtime test fail
+  unless real wallpaper pixels were analyzed.
+- Give wallpaper analysis a five-second process deadline and rerun it whenever
+  Omarchy changes the active background.
+
 ## 0.3.0 - 2026-09-19
 
 - Sample the actual wallpaper pixels beneath the system monitor and choose the
