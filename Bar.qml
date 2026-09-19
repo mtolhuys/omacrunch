@@ -584,9 +584,13 @@ Item {
 
               active: root.widgetComponent(moduleId) !== null
               sourceComponent: root.widgetComponent(moduleId)
+              // Keep the host visible so the loaded item's own `visible`
+              // decision remains independent. Binding the Loader visibility
+              // back to item.visible creates a one-way trap: an initially
+              // empty Loader hides its child as soon as it is constructed.
               Layout.preferredWidth: item && item.visible !== false ? item.implicitWidth : 0
               Layout.preferredHeight: root.barSize
-              visible: item ? item.visible !== false : false
+              visible: true
 
               onItemChanged: {
                 if (registeredItem && registeredItem !== item) root.unregisterWidget(registeredItem)

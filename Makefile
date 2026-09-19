@@ -49,7 +49,7 @@ open:
 		exit 1; \
 	fi
 	@bar_state="$$(omarchy-shell omacrunch-bar state)"; \
-	if ! jq -e '.height == 30 and .screens >= 1 and .workspaces >= 5 and .widgets >= 4' <<<"$$bar_state" >/dev/null; then \
+	if ! jq -e '.height == 30 and .screens >= 1 and .workspaces >= 5 and .widgets >= 4 and ([.widgetMetrics[] | select(.visible == true and .implicitWidth > 0 and .implicitHeight > 0)] | length) >= 4' <<<"$$bar_state" >/dev/null; then \
 		echo "Omacrunch workspace/status bar was incomplete: $$bar_state" >&2; \
 		exit 1; \
 	fi; \
