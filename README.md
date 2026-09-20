@@ -78,14 +78,16 @@ Only **System Monitor** is enabled by default. Extra widgets are opt-in:
 - **Calendar** is a local month view without accounts or appointments.
 
 Widget positions are stored in
-`~/.local/state/omarchy/omacrunch/widgets.json`. Plugin-shelf order is stored
-beside it in `plugin-order.json`. Removing the plugin leaves both files intact.
+`$XDG_STATE_HOME/io.github.mtolhuys.omacrunch/widgets.json` (normally under
+`~/.local/state`). Plugin-shelf order is stored beside it in
+`plugin-order.json`. Existing preferences from older releases are migrated
+automatically; removing the plugin leaves the state intact.
 
 ## Requirements
 
 - Omarchy 4.0.3 or newer with Quattro plugin support.
 - ImageMagick for wallpaper-aware contrast.
-- Python 3's standard library for the optional data widgets.
+- Python 3's standard library for supervised helpers and optional data widgets.
 
 ## Develop and test
 
@@ -105,6 +107,11 @@ make local-test
 `make local-test` refuses a dirty worktree. It validates the manifest and QML,
 runs the unit and offscreen UI tests, applies the Omakit checks, updates the
 local installation and probes the live bar, menu and wallpaper lifecycle.
+
+All plugin-started programs use Omakit's versioned `Run` block. Widget layout
+and plugin order use its schema-checked, private, atomic `Store` block. The
+vendored block files remain unmodified so `omakit inspect` can verify their
+recorded hashes.
 
 Omakit's shipped VM suites do not currently cover arbitrary plugin pointer
 gestures, so drag behaviour also has focused component and live-shell tests.

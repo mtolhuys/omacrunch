@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import qs.Commons
 import qs.Ui
 import "MenuActions.js" as MenuActions
+import "omakit" as Omakit
 
 Item {
   id: root
@@ -26,9 +27,10 @@ Item {
   property string shortcutAction: "status-code"
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
+  readonly property string omarchyPath: Quickshell.env("OMARCHY_PATH")
   readonly property string shortcutHelper: decodeURIComponent(
     String(Qt.resolvedUrl("shortcut.py")).replace(/^file:\/\//, ""))
-  readonly property bool shortcutBusy: shortcutProcess.running
+  readonly property bool shortcutBusy: shortcutRun.running
   readonly property var rootEntries: MenuActions.rootEntries(root.shortcutState, root.shortcutBusy)
   readonly property int widgetsIndex: rootEntries.findIndex(function(entry) { return entry.action === "widgets" })
   readonly property var entries: page === "widgets" ? widgetEntries : rootEntries
@@ -87,10 +89,10 @@ Item {
   }
 
   function runShortcut(action) {
-    if (shortcutProcess.running) return false
+    if (shortcutRun.running) return false
     root.shortcutAction = action
-    shortcutProcess.command = ["/usr/bin/python3", root.shortcutHelper, action]
-    shortcutProcess.running = true
+    shortcutRun.command = ["/usr/bin/python3", "-I", "-S", "-B", root.shortcutHelper, action]
+    shortcutRun.start()
     return true
   }
 
@@ -100,8 +102,13 @@ Item {
     root.runShortcut("status-code")
   }
 
-  function finishShortcut(code) {
-    shortcutDeadline.stop()
+  function finishShortcut(result) {
+    var code = result.state === "ok" ? 0 : (result.state === "exit" ? result.exitCode : -1)
+    if (result.state === "timeout") {
+      root.shortcutState = "unavailable"
+      root.shortcutMessage = "Shortcut inspection timed out."
+      return
+    }
     if (root.shortcutAction === "status-code") {
       if (code === 0) root.shortcutState = "free"
       else if (code === 10) root.shortcutState = "owned"
@@ -149,7 +156,9 @@ Item {
     var command = MenuActions.commandFor(entry)
     if (!command.length) return
     root.dismiss()
-    Quickshell.execDetached(command)
+    command[0] = root.omarchyPath + "/bin/" + command[0]
+    menuActionRun.command = command
+    menuActionRun.start()
   }
 
   function activateKey(text) {
@@ -171,18 +180,38 @@ Item {
     onTriggered: if (root.opened) root.focusPrimed = true
   }
 
-  Process {
-    id: shortcutProcess
-    onRunningChanged: if (running) shortcutDeadline.restart()
-    onExited: function(code) { root.finishShortcut(code) }
+  function sessionEnvironment(includeOmarchyPath) {
+    var result = {}
+    ;["WAYLAND_DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "DBUS_SESSION_BUS_ADDRESS", "DISPLAY",
+      "XDG_CONFIG_HOME", "XDG_STATE_HOME"].forEach(function(name) {
+      var value = Quickshell.env(name)
+      if (value) result[name] = value
+    })
+    if (includeOmarchyPath) result.PATH = root.omarchyPath + "/bin:/usr/bin"
+    return result
   }
-  Timer {
-    id: shortcutDeadline
-    interval: 12000
-    onTriggered: {
-      if (shortcutProcess.running) shortcutProcess.running = false
-      root.shortcutState = "unavailable"
-      root.shortcutMessage = "Shortcut inspection timed out."
+
+  Omakit.Run {
+    id: shortcutRun
+    environment: root.sessionEnvironment(false)
+    deadlineMs: 12000
+    maxBytes: 65536
+    keepBytes: 65536
+    maxLines: 1024
+    onFinished: function(result) { root.finishShortcut(result) }
+  }
+
+  Omakit.Run {
+    id: menuActionRun
+    environment: root.sessionEnvironment(true)
+    deadlineMs: 30000
+    maxBytes: 65536
+    keepBytes: 4096
+    maxLines: 1024
+    onFinished: function(result) {
+      if (result.state === "ok") return
+      root.open("{}")
+      root.shortcutMessage = "Menu action failed (" + result.state + ")."
     }
   }
 

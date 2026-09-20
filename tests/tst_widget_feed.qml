@@ -75,15 +75,15 @@ FloatingWindow {
       feed.active = false
     }
     function test_timeout_and_recovery() {
-      var deadline = findChild(feed, "request-deadline")
-      verify(!!deadline)
-      deadline.interval = 50
+      var request = findChild(feed, "request-run")
+      verify(!!request)
+      request.deadlineMs = 50
       feed.city = "slow-response"
       feed.active = true
       tryCompare(feed, "error", "Request timed out; will retry.")
       tryCompare(feed, "busy", false)
       compare(feed.report.city, undefined)
-      deadline.interval = 18000
+      request.deadlineMs = 18000
       feed.city = "Den Helder"
       tryVerify(function() { return feed.report.city === "Den Helder" }, 4000)
       compare(feed.error, "")

@@ -1,5 +1,6 @@
 import QtQuick
-import Quickshell.Io
+import Quickshell
+import "omakit" as Omakit
 
 Item {
   id: root
@@ -11,13 +12,11 @@ Item {
   property var report: ({})
   property string error: ""
   property bool needsLocation: false
-  property string buffer: ""
   property int revision: 0
   property int runningRevision: 0
   property string runningCity: ""
   property bool inFlight: false
   property bool pendingRefresh: false
-  property bool timedOut: false
   readonly property string collectorPath: decodeURIComponent(String(Qt.resolvedUrl("widget-data.py")).replace(/^file:\/\//, ""))
   readonly property bool busy: inFlight || pendingRefresh
   readonly property int pollInterval: error ? Math.min(interval, retryInterval) : interval
@@ -34,24 +33,23 @@ Item {
     pendingRefresh = false
     runningRevision = revision
     runningCity = city
-    buffer = ""
     error = ""
-    timedOut = false
     inFlight = true
-    deadline.restart()
-    collector.running = true
+    collector.command = ["/usr/bin/python3", "-I", "-S", "-B",
+      root.collectorPath, root.kind, root.runningCity]
+    collector.start()
   }
   function invalidate() {
     revision++
     pendingRefresh = active
-    if (inFlight) collector.running = false
+    if (inFlight) collector.cancel()
     else Qt.callLater(startPending)
   }
-  function acceptResponse(code) {
-    if (timedOut) { error = "Request timed out; will retry."; return }
-    if (code !== 0) { error = "Data request failed; will retry."; return }
+  function acceptResponse(result) {
+    if (result.state === "timeout") { error = "Request timed out; will retry."; return }
+    if (result.state !== "ok") { error = "Data request failed (" + result.state + "); will retry."; return }
     try {
-      var next = JSON.parse(buffer)
+      var next = JSON.parse(result.stdout)
       if (!next || typeof next !== "object" || Array.isArray(next)) throw new Error("Invalid response")
       needsLocation = next.needsLocation === true
       if (next.error) error = String(next.error)
@@ -70,28 +68,24 @@ Item {
   }
   Component.onCompleted: if (active) refresh()
   Timer { interval: root.pollInterval; running: root.active; repeat: true; onTriggered: root.refresh() }
-  Timer {
-    id: deadline
-    objectName: "request-deadline"
-    interval: 18000
-    onTriggered: {
-      root.timedOut = true
-      root.error = "Request timed out; will retry."
-      if (collector.running) collector.running = false
-      else root.inFlight = false
-    }
-  }
-  Process {
+
+  Omakit.Run {
     id: collector
-    command: ["/usr/bin/timeout", "18", "/usr/bin/python3", root.collectorPath, root.kind, root.runningCity]
-    stdout: SplitParser {
-      onRead: function(line) { if (root.buffer.length + line.length < 65536) root.buffer += line }
+    objectName: "request-run"
+    deadlineMs: 18000
+    maxBytes: 65536
+    keepBytes: 65536
+    maxLines: 2048
+    environment: {
+      var result = {}
+      var stateHome = Quickshell.env("XDG_STATE_HOME")
+      if (stateHome) result.XDG_STATE_HOME = stateHome
+      return result
     }
-    onExited: function(code) {
-      deadline.stop()
+    onFinished: function(result) {
       root.inFlight = false
       if (!root.active) return
-      if (root.runningRevision === root.revision) root.acceptResponse(code)
+      if (root.runningRevision === root.revision) root.acceptResponse(result)
       if (root.pendingRefresh) Qt.callLater(root.startPending)
     }
   }

@@ -1,7 +1,7 @@
 import QtQuick
-import Quickshell.Io
 import "Contrast.js" as Contrast
 import "ToneSample.js" as ToneSample
+import "omakit" as Omakit
 
 // Samples the exact wallpaper crop behind the telemetry block. ImageMagick
 // emits a fixed 12x18 pixel grid, keeping output bounded while preserving
@@ -52,11 +52,23 @@ Item {
 
   function refresh() {
     if (!sourcePath || screenWidth <= 0 || screenHeight <= 0) return
-    if (toneProcess.running) toneProcess.running = false
     attempts += 1
     gridPixels = []
-    toneProcess.running = true
-    processDeadline.restart()
+    toneProcess.command = [
+      "/usr/bin/magick", root.sourcePath,
+      "-auto-orient",
+      "-resize", root.processGeometry.screen + "^",
+      "-gravity", "center",
+      "-extent", root.processGeometry.screen,
+      "-gravity", "NorthWest",
+      "-crop", root.processGeometry.crop,
+      "+repage",
+      "-resize", "12x18!",
+      "-colorspace", "sRGB",
+      "-depth", "8",
+      "txt:-"
+    ]
+    toneProcess.start()
   }
 
   function acceptPixelLine(line) {
@@ -119,32 +131,16 @@ Item {
     onTriggered: root.refresh()
   }
 
-  Timer {
-    id: processDeadline
-    interval: 5000
-    onTriggered: if (toneProcess.running) toneProcess.running = false
-  }
-
-  Process {
+  Omakit.Run {
     id: toneProcess
-    command: [
-      "/usr/bin/timeout", "5", "/usr/bin/magick", root.sourcePath,
-      "-auto-orient",
-      "-resize", root.processGeometry.screen + "^",
-      "-gravity", "center",
-      "-extent", root.processGeometry.screen,
-      "-gravity", "NorthWest",
-      "-crop", root.processGeometry.crop,
-      "+repage",
-      "-resize", "12x18!",
-      "-colorspace", "sRGB",
-      "-depth", "8",
-      "txt:-"
-    ]
-    stdout: SplitParser {
-      onRead: function(line) { root.acceptPixelLine(line) }
+    deadlineMs: 5000
+    maxBytes: 65536
+    keepBytes: 65536
+    maxLines: 300
+    onFinished: function(result) {
+      if (result.state !== "ok") return
+      String(result.stdout || "").split("\n").forEach(function(line) { root.acceptPixelLine(line) })
+      root.finishGrid()
     }
-    onExited: root.finishGrid()
-    onRunningChanged: if (!running) processDeadline.stop()
   }
 }

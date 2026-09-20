@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0 - 2026-09-20
+
+- Route every plugin-started program through Omakit's versioned Run block for
+  a closed environment, absolute argv, bounded output, cancellation and hard
+  deadlines; retain the public bar command contract in one explicit,
+  supervised shell-string adapter.
+- Move widget layout and plugin-shelf order to Omakit's schema-checked Store
+  block with private directories and atomic 0600 writes. Safely migrate prior
+  preferences without deleting the rollback copy.
+- Add Run/Store component coverage, legacy-state boundary tests and live checks
+  that both state backends loaded without errors.
+
 ## 0.8.2 - 2026-09-20
 
 - Preserve the native clock's selected format across shell reloads by reading

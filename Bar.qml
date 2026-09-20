@@ -9,6 +9,7 @@ import qs.Commons
 import "Workspace.js" as Workspace
 import "PluginShelfModel.js" as ShelfModel
 import "BarSettings.js" as BarSettings
+import "omakit" as Omakit
 
 // A full Tint2-style bar rather than a row of unrelated widgets. Workspaces
 // own their windows, while Omarchy's mature status widgets keep providing the
@@ -56,6 +57,7 @@ Item {
   property var tooltipTarget: null
   property string tooltipText: ""
   property bool tooltipShown: false
+  property string commandError: ""
 
   readonly property var configuredPluginEntries: ShelfModel.entries(barConfig,
     barWidgetRegistry ? barWidgetRegistry.widgets : {}, pluginId,
@@ -381,7 +383,14 @@ Item {
   }
 
   function run(command) {
-    if (command) Util.execDetached(command)
+    if (!command) return false
+    commandError = ""
+    var runner = shellRunComponent.createObject(root, {
+      command: ["/usr/bin/bash", "--noprofile", "--norc", "-c", String(command)]
+    })
+    if (!runner) return false
+    runner.start()
+    return true
   }
 
   function shellQuote(value) { return Util.shellQuote(String(value || "")) }
@@ -466,27 +475,61 @@ Item {
     onTriggered: root.tooltipShown = root.tooltipTarget !== null && root.tooltipText !== ""
   }
 
+  function sessionEnvironment() {
+    var result = { PATH: root.omarchyPath + "/bin:/usr/bin" }
+    ;["WAYLAND_DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "DBUS_SESSION_BUS_ADDRESS", "DISPLAY",
+      "XDG_CONFIG_HOME", "XDG_STATE_HOME"].forEach(function(name) {
+      var value = Quickshell.env(name)
+      if (value) result[name] = value
+    })
+    return result
+  }
+
+  // Native and third-party bar widgets expose command strings through the
+  // public bar API. Preserve that contract, but supervise every invocation in
+  // a closed, fixed-path environment with a hard deadline and bounded output.
+  Component {
+    id: shellRunComponent
+    Omakit.Run {
+      id: shellRun
+      allowShellString: true
+      environment: root.sessionEnvironment()
+      deadlineMs: 30000
+      maxBytes: 65536
+      keepBytes: 4096
+      maxLines: 1024
+      onFinished: function(result) {
+        if (result.state !== "ok") {
+          root.commandError = "Command failed (" + result.state + ")."
+          console.warn("Omacrunch bar command ended as " + result.state)
+        }
+        shellRun.destroy()
+      }
+    }
+  }
+
   // Honor Omarchy's native `omarchy toggle bar` state. Keeping the surfaces
   // mapped and parking them just above the screen makes both hide and reveal
   // immediate without rebuilding every hosted plugin widget.
-  Process {
+  Omakit.Run {
     id: barHiddenProbe
     command: ["/usr/bin/test", "-e", root.barHiddenFlag]
-    onRunningChanged: if (running) barHiddenDeadline.restart(); else barHiddenDeadline.stop()
-    onExited: function(code) { root.barHidden = code === 0 }
-  }
-  Timer {
-    id: barHiddenDeadline
-    interval: 3000
-    onTriggered: barHiddenProbe.running = false
+    deadlineMs: 3000
+    maxBytes: 4096
+    keepBytes: 4096
+    maxLines: 16
+    onFinished: function(result) {
+      if (result.state === "ok") root.barHidden = true
+      else if (result.state === "exit" && result.exitCode === 1) root.barHidden = false
+    }
   }
   FileView {
     path: root.toggleDirectory
     watchChanges: true
     printErrors: false
-    onFileChanged: if (!barHiddenProbe.running) barHiddenProbe.running = true
+    onFileChanged: barHiddenProbe.start()
   }
-  Component.onCompleted: barHiddenProbe.running = true
+  Component.onCompleted: barHiddenProbe.start()
 
   IpcHandler {
     target: "omacrunch-bar"
@@ -502,6 +545,9 @@ Item {
         hidden: root.barHidden,
         transparent: root.transparent,
         panelOpacity: root.panelOpacity,
+        pluginOrderLoaded: pluginOrder.loaded,
+        pluginOrderError: pluginOrder.error,
+        commandError: root.commandError,
         focusedWorkspace: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
       })
     }
@@ -608,7 +654,7 @@ Item {
             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             cursorShape: Qt.PointingHandCursor
             onClicked: function(mouse) {
-              if (mouse.button === Qt.MiddleButton) Quickshell.execDetached(["omarchy-launch-terminal"])
+              if (mouse.button === Qt.MiddleButton) root.run("omarchy-launch-terminal")
               else root.openRootMenu()
             }
           }

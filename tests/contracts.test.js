@@ -7,6 +7,12 @@ const menu = fs.readFileSync(path.join(__dirname, "..", "Menu.qml"), "utf8")
 const makefile = fs.readFileSync(path.join(__dirname, "..", "Makefile"), "utf8")
 const service = fs.readFileSync(path.join(__dirname, "..", "Service.qml"), "utf8")
 const wallpaperTone = fs.readFileSync(path.join(__dirname, "..", "WallpaperTone.qml"), "utf8")
+const widgetFeed = fs.readFileSync(path.join(__dirname, "..", "WidgetFeed.qml"), "utf8")
+const widgetStore = fs.readFileSync(path.join(__dirname, "..", "WidgetStore.qml"), "utf8")
+const pluginOrderStore = fs.readFileSync(path.join(__dirname, "..", "PluginOrderStore.qml"), "utf8")
+const uiScripts = ["widget-ui.sh", "widget-feed-ui.sh", "plugin-shelf-ui.sh"]
+  .map(name => fs.readFileSync(path.join(__dirname, name), "utf8")).join("\n")
+const processOwners = { bar, menu, wallpaperTone, widgetFeed, widgetStore, pluginOrderStore }
 const injected = ["omarchyPath", "barWidgetRegistry", "barConfig"]
 
 for (const property of injected) {
@@ -60,11 +66,11 @@ assert.doesNotMatch(menu, /text:\s*[^\n]*(?:OMACRUNCH|"ROOT")/)
 assert.match(service, /keys:\s*"RIGHT CLICK";\s*action:\s*"menu"/)
 assert.doesNotMatch(service, /action:\s*"omacrunch"/)
 assert.match(menu, /Qt\.ControlModifier\s*\|\s*Qt\.AltModifier\s*\|\s*Qt\.MetaModifier/)
-assert.match(menu, /root\.dismiss\(\)\s+Quickshell\.execDetached\(command\)/)
+assert.match(menu, /root\.dismiss\(\)[\s\S]+menuActionRun\.start\(\)/)
 assert.doesNotMatch(menu, /selectedIndex\s*=\s*5|if \(index ===/)
 assert.match(menu, /modelData\.action === "widgets" \|\| !!modelData\.hint/)
 assert.match(menu, /readonly property var rootEntries: MenuActions\.rootEntries\(root\.shortcutState, root\.shortcutBusy\)/)
-assert.match(menu, /shortcutProcess\.command\s*=\s*\["\/usr\/bin\/python3", root\.shortcutHelper, action\]/)
+assert.match(menu, /shortcutRun\.command\s*=\s*\["\/usr\/bin\/python3", "-I", "-S", "-B", root\.shortcutHelper, action\]/)
 assert.match(menu, /code === 10\) root\.shortcutState = "owned"/)
 assert.doesNotMatch(menu, /stdout:\s*(?:SplitParser|StdioCollector)/)
 assert.match(menu, /entry\.action === "shortcut"/)
@@ -73,6 +79,7 @@ assert.match(menu, /rootEntries\.findIndex\(function\(entry\) \{ return entry\.a
 assert.match(makefile, /node tests\/menu-actions\.test\.js/)
 assert.match(makefile, /node tests\/bar-settings\.test\.js/)
 assert.match(makefile, /python3 -B tests\/shortcut\.test\.py/)
+assert.match(makefile, /python3 -B tests\/legacy-state\.test\.py/)
 assert.match(service, /active: widgets\.loaded && widgets\.anyEnabled\("weather"\)/)
 assert.match(service, /onWeatherLocationSaved\(\) \{ weatherFeed\.refresh\(\) \}/)
 assert.match(makefile, /bash tests\/widget-feed-ui\.sh/)
@@ -113,5 +120,24 @@ assert.match(wallpaperTone, /import\s+"ToneSample\.js"\s+as\s+ToneSample/)
 assert.match(wallpaperTone, /zones\s*=\s*\(\{\}\)/)
 assert.match(wallpaperTone, /gridPixels\.length\s*<\s*216/)
 assert.match(makefile, /node tests\/tone-sample\.test\.js/)
+
+for (const [name, source] of Object.entries(processOwners)) {
+  assert.match(source, /import\s+"omakit"\s+as\s+Omakit/, `${name} imports the Omakit blocks`)
+  assert.doesNotMatch(source, /\bProcess\s*\{|(?:Quickshell|Util)\.execDetached\s*\(/,
+    `${name} must not bypass Omakit Run`)
+}
+assert.match(bar, /Omakit\.Run\s*\{[\s\S]+allowShellString:\s*true/)
+assert.match(bar, /commandError\s*=\s*"Command failed \("\s*\+\s*result\.state/)
+assert.match(menu, /Omakit\.Run\s*\{[\s\S]+id:\s*shortcutRun/)
+assert.match(widgetFeed, /Omakit\.Run\s*\{[\s\S]+id:\s*collector/)
+assert.match(wallpaperTone, /Omakit\.Run\s*\{[\s\S]+id:\s*toneProcess/)
+assert.match(widgetStore, /Omakit\.Store\s*\{[\s\S]+name:\s*"widgets\.json"/)
+assert.match(pluginOrderStore, /Omakit\.Store\s*\{[\s\S]+name:\s*"plugin-order\.json"/)
+assert.match(widgetStore, /additionalProperties:\s*false/)
+assert.match(pluginOrderStore, /additionalProperties:\s*false/)
+assert.match(makefile, /sealed Run block/)
+assert.match(makefile, /omakit\/Store\.qml/)
+assert.equal((uiScripts.match(/cp -R -- omakit/g) || []).length, 3,
+  "every headless UI suite copies the Omakit blocks")
 
 console.log("contracts: ok")

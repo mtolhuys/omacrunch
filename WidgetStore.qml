@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import "WidgetLayout.js" as Layout
+import "omakit" as Omakit
 
 Item {
   id: root
@@ -9,11 +9,12 @@ Item {
   property var savedLayout: Layout.defaults()
   property bool editing: false
   property bool loaded: false
-  property bool directoryReady: false
   property string error: ""
-  property var pendingLayout: Layout.defaults()
+  property bool migrating: false
   signal weatherLocationSaved()
-  readonly property string directory: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/omacrunch"
+  readonly property bool directoryReady: loaded && !stateStore.busy
+  readonly property string migrationHelper: decodeURIComponent(
+    String(Qt.resolvedUrl("legacy-state.py")).replace(/^file:\/\//, ""))
 
   function item(screen, id) { return Layout.entry(layout, screen, id) }
   function enabled(screen, id) { return item(screen, id).enabled }
@@ -64,34 +65,78 @@ Item {
   function persist(snapshot) {
     if (!loaded) return
     error = ""
-    pendingLayout = Layout.normalize(snapshot || layout)
-    if (directoryReady) writePending()
-    else ensureDirectory.running = true
+    stateStore.write(Layout.normalize(snapshot || layout))
   }
-  function writePending() { stateFile.setText(JSON.stringify(pendingLayout, null, 2) + "\n") }
-  FileView {
-    id: stateFile
-    path: root.directory + "/widgets.json"
-    atomicWrites: true
-    printErrors: false
-    onLoaded: {
-      if (root.loaded) return
-      try { root.layout = Layout.normalize(JSON.parse(text())) }
-      catch (e) { root.error = "Could not read widget layout; defaults loaded." }
-      root.loaded = true
+
+  function finishLoad(value) {
+    layout = Layout.normalize(value)
+    savedLayout = Layout.normalize(layout)
+    loaded = true
+  }
+
+  Omakit.Store {
+    id: stateStore
+    pluginId: "io.github.mtolhuys.omacrunch"
+    name: "widgets.json"
+    maxBytes: 65536
+    schema: ({
+      type: "object",
+      required: ["version", "screens", "weatherCity"],
+      properties: {
+        version: { type: "integer", enum: [1] },
+        screens: { type: "object", maxProperties: 32 },
+        weatherCity: { type: "string", maxLength: 120 }
+      },
+      additionalProperties: false
+    })
+    onFinished: function(result) {
+      if (result.op === "read") {
+        if (result.state === "ok") root.finishLoad(result.value)
+        else if (result.state === "missing") legacyReader.start()
+        else {
+          root.error = "Could not read widget layout (" + result.state + "); defaults loaded."
+          root.finishLoad(Layout.defaults())
+        }
+      } else if (result.op === "write" && root.migrating) {
+        root.migrating = false
+        if (result.state !== "ok") root.error = "Could not migrate widget layout (" + result.state + ")."
+        root.loaded = true
+      } else if (result.op === "write" && result.state !== "ok") {
+        root.error = "Could not save widget layout (" + result.state + ")."
+      }
     }
-    onLoadFailed: root.loaded = true
-    onSaveFailed: root.error = "Could not save widget layout. Check directory permissions."
   }
-  Process {
-    id: ensureDirectory
-    command: ["/usr/bin/mkdir", "-p", "--", root.directory]
-    onRunningChanged: if (running) deadline.restart(); else deadline.stop()
-    onExited: function(code) {
-      root.directoryReady = code === 0
-      if (root.directoryReady) root.writePending()
-      else root.error = "Could not create widget layout directory."
+
+  Omakit.Run {
+    id: legacyReader
+    command: ["/usr/bin/python3", "-I", "-S", "-B", root.migrationHelper, "widgets.json"]
+    environment: {
+      var result = {}
+      var stateHome = Quickshell.env("XDG_STATE_HOME")
+      if (stateHome) result.XDG_STATE_HOME = stateHome
+      return result
+    }
+    deadlineMs: 3000
+    maxBytes: 65536
+    keepBytes: 65536
+    maxLines: 2
+    onFinished: function(result) {
+      if (result.state === "ok") {
+        try {
+          root.layout = Layout.normalize(JSON.parse(result.stdout))
+          root.savedLayout = Layout.normalize(root.layout)
+          root.migrating = true
+          stateStore.write(root.layout)
+          return
+        } catch (error) {
+          root.error = "Could not migrate the old widget layout; defaults loaded."
+        }
+      } else if (!(result.state === "exit" && result.exitCode === 3)) {
+        root.error = "Could not inspect the old widget layout; defaults loaded."
+      }
+      root.finishLoad(Layout.defaults())
     }
   }
-  Timer { id: deadline; interval: 3000; onTriggered: ensureDirectory.running = false }
+
+  Component.onCompleted: stateStore.read()
 }

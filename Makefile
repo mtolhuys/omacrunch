@@ -10,7 +10,8 @@ export OMARCHY_SHELL_DIR
 check:
 	@test -z "$$(git status --porcelain)" || { echo "Refusing to test a dirty worktree; commit the version you want Omarchy to clone." >&2; exit 1; }
 	omarchy plugin validate .
-	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml DesktopWidget.qml WidgetStore.qml WidgetFeed.qml WidgetContent.qml PluginShelf.qml PluginWidgetHost.qml PluginBarBridge.qml LegacyPluginShell.qml PluginOrderStore.qml
+	# qmllint 6.10 exits 255 on the sealed Run block itself; consumers and Store still lint here.
+	qmllint -I "$(OMARCHY_SHELL_DIR)" Bar.qml Service.qml Menu.qml Sparkline.qml WallpaperTone.qml DesktopWidget.qml WidgetStore.qml WidgetFeed.qml WidgetContent.qml PluginShelf.qml PluginWidgetHost.qml PluginBarBridge.qml LegacyPluginShell.qml PluginOrderStore.qml omakit/Store.qml
 	node tests/metrics.test.js
 	node tests/contrast.test.js
 	node tests/tone-sample.test.js
@@ -21,6 +22,7 @@ check:
 	node tests/widget-layout.test.js
 	node tests/plugin-shelf.test.js
 	python3 -B tests/widget-data.test.py
+	python3 -B tests/legacy-state.test.py
 	python3 -B tests/shortcut.test.py
 	bash tests/widget-feed-ui.sh
 	bash tests/widget-ui.sh
@@ -82,7 +84,7 @@ open:
 		exit 1; \
 	fi
 	@bar_state="$$(omarchy-shell omacrunch-bar state)"; \
-	if ! jq -e '.height == 30 and .screens >= 1 and .workspaces >= 5 and .widgets >= 4 and ([.widgetMetrics[] | select(.visible == true and .implicitWidth > 0 and .implicitHeight > 0)] | length) >= 4' <<<"$$bar_state" >/dev/null; then \
+	if ! jq -e '.height == 30 and .screens >= 1 and .workspaces >= 5 and .widgets >= 4 and .pluginOrderLoaded == true and .pluginOrderError == "" and ([.widgetMetrics[] | select(.visible == true and .implicitWidth > 0 and .implicitHeight > 0)] | length) >= 4' <<<"$$bar_state" >/dev/null; then \
 		echo "Omacrunch workspace/status bar was incomplete: $$bar_state" >&2; \
 		exit 1; \
 	fi; \
@@ -146,7 +148,11 @@ open:
 		omarchy-shell omacrunch toneDebug >&2 || true; \
 		exit 1; \
 	fi
-	omarchy-shell omacrunch state
+	@service_state="$$(omarchy-shell omacrunch state)"; \
+	if ! jq -e '.version == "0.9.0" and .widgetStoreLoaded == true and .widgetStoreError == ""' <<<"$$service_state" >/dev/null; then \
+		echo "Omacrunch service or Omakit Store was not ready: $$service_state" >&2; exit 1; \
+	fi; \
+	echo "$$service_state"
 	@omarchy-shell omacrunch refreshTone >/dev/null
 	@tone_refreshed=0; \
 	for attempt in $$(seq 1 100); do \
