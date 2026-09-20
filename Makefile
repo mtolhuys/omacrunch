@@ -83,8 +83,13 @@ open:
 		echo "Omacrunch workspace taskbar did not expose valid per-screen geometry: $$bar_geometry" >&2; \
 		exit 1; \
 	fi
-	@bar_state="$$(omarchy-shell omacrunch-bar state)"; \
-	if ! jq -e '.height == 30 and .screens >= 1 and .workspaces >= 5 and .widgets >= 4 and .pluginOrderLoaded == true and .pluginOrderError == "" and ([.widgetMetrics[] | select(.visible == true and .implicitWidth > 0 and .implicitHeight > 0)] | length) >= 4' <<<"$$bar_state" >/dev/null; then \
+	@bar_state_ready=0; \
+	for attempt in $$(seq 1 100); do \
+		bar_state="$$(omarchy-shell omacrunch-bar state 2>/dev/null)"; \
+		if jq -e '.height == 30 and .screens >= 1 and .workspaces >= 5 and .widgets >= 4 and .pluginOrderLoaded == true and .pluginOrderError == "" and ([.widgetMetrics[] | select(.visible == true and .implicitWidth > 0 and .implicitHeight > 0)] | length) >= 4' <<<"$$bar_state" >/dev/null 2>&1; then bar_state_ready=1; break; fi; \
+		sleep 0.1; \
+	done; \
+	if [ "$$bar_state_ready" -ne 1 ]; then \
 		echo "Omacrunch workspace/status bar was incomplete: $$bar_state" >&2; \
 		exit 1; \
 	fi; \
