@@ -15,6 +15,7 @@ check:
 	node tests/contrast.test.js
 	node tests/tone-sample.test.js
 	node tests/workspace.test.js
+	node tests/bar-settings.test.js
 	node tests/contracts.test.js
 	node tests/menu-actions.test.js
 	node tests/widget-layout.test.js
@@ -86,6 +87,12 @@ open:
 		exit 1; \
 	fi; \
 	echo "Omacrunch bar state: $$bar_state"
+	@clock_state="$$(omarchy-shell omacrunch-bar clockState)"; \
+	if ! jq -e '.configuredFormat != "" and .activeFormat == .configuredFormat' <<<"$$clock_state" >/dev/null; then \
+		echo "Omacrunch clock did not restore its persisted format: $$clock_state" >&2; \
+		exit 1; \
+	fi; \
+	echo "Omacrunch clock persistence: $$clock_state"
 	@initial_tray_state="$$(omarchy-shell omacrunch-bar trayState)"; \
 	case "$$initial_tray_state" in \
 		expanded) ;; \

@@ -8,6 +8,7 @@ import Quickshell.Wayland
 import qs.Commons
 import "Workspace.js" as Workspace
 import "PluginShelfModel.js" as ShelfModel
+import "BarSettings.js" as BarSettings
 
 // A full Tint2-style bar rather than a row of unrelated widgets. Workspaces
 // own their windows, while Omarchy's mature status widgets keep providing the
@@ -130,8 +131,16 @@ Item {
   function widgetSettings(id) {
     if (id === "omarchy.tray") return { id: id, pinned: trayIds(), hidden: [] }
     if (id === "omarchy.power") return { id: id, showPercentage: false }
-    if (id === "omarchy.clock") return { id: id, format: "HH:mm", formatAlt: "ddd d MMM yyyy" }
+    if (id === "omarchy.clock") return BarSettings.clockSettings(barConfig)
     return { id: id }
+  }
+
+  function clockState() {
+    var configured = BarSettings.clockSettings(barConfig)
+    var clocks = moduleWidgets("omarchy.clock")
+    var active = clocks.length && clocks[0].activeFormat !== undefined
+      ? String(clocks[0].activeFormat) : ""
+    return { configuredFormat: configured.format, activeFormat: active }
   }
 
   function configureWidget(loader, screenName) {
@@ -508,6 +517,8 @@ Item {
     function trayState(): string { return root.trayState() }
 
     function trayVisualState(): string { return root.trayVisualState() }
+
+    function clockState(): string { return JSON.stringify(root.clockState()) }
 
     function focusWorkspace(id: int): string {
       return root.focusWorkspace(id) ? "requested" : "invalid"

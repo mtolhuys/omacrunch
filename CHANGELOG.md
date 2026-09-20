@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2 - 2026-09-20
+
+- Preserve the native clock's selected format across shell reloads by reading
+  its persisted Omarchy bar entry instead of injecting the default again.
+- Add unit, contract and live reload coverage for clock-format persistence.
+
 ## 0.8.1 - 2026-09-20
 
 - Make the live tray lifecycle test preserve the user's original collapsed or
