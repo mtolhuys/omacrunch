@@ -26,6 +26,7 @@ Item {
   property bool analyzed: false
   property int attempts: 0
   property var gridPixels: []
+  readonly property var processGeometry: geometry()
 
   width: 1
   height: 1
@@ -126,23 +127,20 @@ Item {
 
   Process {
     id: toneProcess
-    command: {
-      var area = root.geometry()
-      return [
-        "/usr/bin/magick", root.sourcePath,
-        "-auto-orient",
-        "-resize", area.screen + "^",
-        "-gravity", "center",
-        "-extent", area.screen,
-        "-gravity", "NorthWest",
-        "-crop", area.crop,
-        "+repage",
-        "-resize", "12x18!",
-        "-colorspace", "sRGB",
-        "-depth", "8",
-        "txt:-"
-      ]
-    }
+    command: [
+      "/usr/bin/timeout", "5", "/usr/bin/magick", root.sourcePath,
+      "-auto-orient",
+      "-resize", root.processGeometry.screen + "^",
+      "-gravity", "center",
+      "-extent", root.processGeometry.screen,
+      "-gravity", "NorthWest",
+      "-crop", root.processGeometry.crop,
+      "+repage",
+      "-resize", "12x18!",
+      "-colorspace", "sRGB",
+      "-depth", "8",
+      "txt:-"
+    ]
     stdout: SplitParser {
       onRead: function(line) { root.acceptPixelLine(line) }
     }

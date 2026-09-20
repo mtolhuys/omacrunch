@@ -209,10 +209,20 @@ def _backup(path: Path, original: bytes) -> Path:
         raise ShortcutError("could not allocate a unique private backup")
     descriptor = os.open(backup, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
-        os.write(descriptor, original)
-        os.fsync(descriptor)
+        with os.fdopen(descriptor, "wb", closefd=True) as handle:
+            descriptor = -1
+            handle.write(original)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except OSError as exc:
+        try:
+            backup.unlink()
+        except FileNotFoundError:
+            pass
+        raise ShortcutError("could not create a complete private backup") from exc
     finally:
-        os.close(descriptor)
+        if descriptor >= 0:
+            os.close(descriptor)
     return backup
 
 

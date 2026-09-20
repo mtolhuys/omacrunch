@@ -18,6 +18,7 @@ Item {
   property bool inFlight: false
   property bool pendingRefresh: false
   property bool timedOut: false
+  readonly property string collectorPath: decodeURIComponent(String(Qt.resolvedUrl("widget-data.py")).replace(/^file:\/\//, ""))
   readonly property bool busy: inFlight || pendingRefresh
   readonly property int pollInterval: error ? Math.min(interval, retryInterval) : interval
 
@@ -82,7 +83,7 @@ Item {
   }
   Process {
     id: collector
-    command: ["/usr/bin/python3", decodeURIComponent(String(Qt.resolvedUrl("widget-data.py")).replace(/^file:\/\//, "")), root.kind, root.runningCity]
+    command: ["/usr/bin/timeout", "18", "/usr/bin/python3", root.collectorPath, root.kind, root.runningCity]
     stdout: SplitParser {
       onRead: function(line) { if (root.buffer.length + line.length < 65536) root.buffer += line }
     }

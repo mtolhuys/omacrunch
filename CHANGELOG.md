@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.1 - 2026-09-20
+
+- Make the live tray lifecycle test preserve the user's original collapsed or
+  expanded state, including restoration after a failed assertion.
+- Guarantee that shortcut backups are written completely before a personal
+  Hyprland binding is changed; cover a large backup and exact backup contents.
+- Document the public-API boundary for third-party bar-widget compatibility.
+- Put producer-side deadlines on both output collectors and create the
+  simulated blocked state with an explicit private directory mode.
+
 ## 0.8.0 - 2026-09-20
 
 - Add an explicit, reversible `Super+Alt+C` Crunch-menu shortcut with conflict

@@ -22,6 +22,11 @@ together as one calm interface, while Omarchy stays Omarchy underneath.
 No Openbox, Tint2 or Conky processes are added. Omacrunch recreates that
 focused desktop feeling inside Omarchy's existing Hyprland and Quickshell stack.
 
+The shelf hosts configured third-party bar widgets through Omarchy's public bar
+API. Most compact widgets work unchanged; a widget that relies on private stock
+bar internals may not. Omacrunch never loads an unconfigured plugin or reaches
+into another plugin's files.
+
 ## Install from a local checkout
 
 ```bash

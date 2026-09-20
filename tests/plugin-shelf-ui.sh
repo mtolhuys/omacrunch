@@ -16,7 +16,7 @@ if [[ "$output" != *SHELF_UI_PASS* || "$output" == *SHELF_UI_FAIL* ]] \
 fi
 printf 'plugin shelf UI: hover, pin, clicks, drag reorder, persistence, cancel, overflow, scoping, cleanup ok (%s)\n' "$shelf_test_dir"
 # Existing directory at the file path must fail atomically and retain old order.
-mkdir -p "$shelf_test_dir/blocked/omarchy/omacrunch/plugin-order.json"
+install -d -m 700 -- "$shelf_test_dir/blocked/omarchy/omacrunch/plugin-order.json"
 output=$(env -u WAYLAND_DISPLAY QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic \
   QT_QUICK_BACKEND=software XDG_RUNTIME_DIR="$shelf_test_dir" \
   XDG_STATE_HOME="$shelf_test_dir/blocked" OMACRUNCH_ORDER_FAILURE=1 \

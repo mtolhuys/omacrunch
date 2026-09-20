@@ -74,6 +74,16 @@ class ShortcutTests(unittest.TestCase):
         backups = list(self.bindings.parent.glob("bindings.lua.omacrunch-backup-*"))
         self.assertEqual(len(backups), 2)
         self.assertTrue(all((path.stat().st_mode & 0o777) == 0o600 for path in backups))
+        self.assertEqual({path.read_bytes() for path in backups}, {
+            original,
+            original + shortcut.MANAGED_BLOCK.encode(),
+        })
+
+    def test_large_backup_is_complete_and_private(self):
+        original = (b"# personal binding\n" * 16384)[:300000]
+        backup = shortcut._backup(self.bindings, original)
+        self.assertEqual(backup.read_bytes(), original)
+        self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
 
     def test_conflict_refuses_without_mutation(self):
         original = b'o.bind("SUPER + ALT + C", "Mine", "something")\n'

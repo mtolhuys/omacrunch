@@ -3,7 +3,7 @@ set -euo pipefail
 # Registry loading is asynchronous. Wait for each currently configured shelf
 # widget to have exactly one live instance with nonzero height on its screen.
 shelf_ready=0
-for attempt in $(seq 1 60); do
+for _ in $(seq 1 60); do
   shelves=$(omarchy-shell omacrunch-bar pluginState)
   bar_state=$(omarchy-shell omacrunch-bar state)
   if jq -en --argjson shelves "$shelves" --argjson bar "$bar_state" '
