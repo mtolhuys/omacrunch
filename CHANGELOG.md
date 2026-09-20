@@ -7,6 +7,9 @@
 - Guarantee that shortcut backups are written completely before a personal
   Hyprland binding is changed; cover a large backup and exact backup contents.
 - Document the public-API boundary for third-party bar-widget compatibility.
+- Replace machine-specific README paths with public installation, update and
+  contributor instructions; remove stale internal evidence logs from the
+  installable tree.
 - Put producer-side deadlines on both output collectors and create the
   simulated blocked state with an explicit private directory mode.
 

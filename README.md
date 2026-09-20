@@ -27,20 +27,18 @@ API. Most compact widgets work unchanged; a widget that relies on private stock
 bar internals may not. Omacrunch never loads an unconfigured plugin or reaches
 into another plugin's files.
 
-## Install from a local checkout
+## Install
 
 ```bash
-cd "$HOME/Projects/plugins/omacrunch"
-omarchy plugin add . --enable --yes
+omarchy plugin add https://github.com/mtolhuys/omacrunch --enable --yes
 ```
 
 The bar and desktop widget appear immediately. Right-click an empty part of the
 desktop to open the menu.
 
-To update an existing local installation to the latest committed version:
+To update to the latest published version:
 
 ```bash
-cd "$HOME/Projects/plugins/omacrunch"
 omarchy plugin update io.github.mtolhuys.omacrunch --yes
 ```
 
@@ -91,6 +89,8 @@ beside it in `plugin-order.json`. Removing the plugin leaves both files intact.
 
 ## Develop and test
 
+From the root of a checkout:
+
 ```bash
 make check
 make marketplace-check
@@ -99,7 +99,7 @@ make marketplace-check
 To install and exercise the exact clean Git commit locally:
 
 ```bash
-cd "$HOME/Projects/plugins/omacrunch" && make local-test
+make local-test
 ```
 
 `make local-test` refuses a dirty worktree. It validates the manifest and QML,
