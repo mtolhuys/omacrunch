@@ -20,6 +20,7 @@ check:
 	node tests/widget-layout.test.js
 	node tests/plugin-shelf.test.js
 	python3 -B tests/widget-data.test.py
+	bash tests/widget-feed-ui.sh
 	bash tests/widget-ui.sh
 	bash tests/plugin-shelf-ui.sh
 	@if [ "$(OMARCHY_SHELL_DIR)" != /usr/share/omarchy/shell ]; then \

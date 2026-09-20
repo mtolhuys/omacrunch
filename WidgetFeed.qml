@@ -7,47 +7,91 @@ Item {
   property bool active: false
   property string city: ""
   property int interval: 60000
+  property int retryInterval: 60000
   property var report: ({})
   property string error: ""
+  property bool needsLocation: false
   property string buffer: ""
-  readonly property bool busy: collector.running
+  property int revision: 0
+  property int runningRevision: 0
+  property string runningCity: ""
+  property bool inFlight: false
+  property bool pendingRefresh: false
+  property bool timedOut: false
+  readonly property bool busy: inFlight || pendingRefresh
+  readonly property int pollInterval: error ? Math.min(interval, retryInterval) : interval
+
   function refresh() {
-    if (!active || collector.running) return
+    if (!active) return
+    pendingRefresh = true
+    Qt.callLater(startPending)
+  }
+  function startPending() {
+    // A stopped Process is not finished until exited arrives. Starting sooner
+    // lets the cancelled request overwrite the new city's result/error.
+    if (!active || !pendingRefresh || inFlight || collector.running) return
+    pendingRefresh = false
+    runningRevision = revision
+    runningCity = city
     buffer = ""
     error = ""
+    timedOut = false
+    inFlight = true
+    deadline.restart()
     collector.running = true
+  }
+  function invalidate() {
+    revision++
+    pendingRefresh = active
+    if (inFlight) collector.running = false
+    else Qt.callLater(startPending)
+  }
+  function acceptResponse(code) {
+    if (timedOut) { error = "Request timed out; will retry."; return }
+    if (code !== 0) { error = "Data request failed; will retry."; return }
+    try {
+      var next = JSON.parse(buffer)
+      if (!next || typeof next !== "object" || Array.isArray(next)) throw new Error("Invalid response")
+      needsLocation = next.needsLocation === true
+      if (next.error) error = String(next.error)
+      else { report = next; error = "" }
+    } catch (e) { error = "Invalid response; will retry." }
   }
   onActiveChanged: {
     if (active) refresh()
-    else collector.running = false
+    else invalidate()
   }
   onCityChanged: {
     report = ({})
-    collector.running = false
-    Qt.callLater(refresh)
+    needsLocation = false
+    error = ""
+    invalidate()
   }
   Component.onCompleted: if (active) refresh()
-  Timer { interval: root.interval; running: root.active; repeat: true; onTriggered: root.refresh() }
+  Timer { interval: root.pollInterval; running: root.active; repeat: true; onTriggered: root.refresh() }
   Timer {
     id: deadline
+    objectName: "request-deadline"
     interval: 18000
-    onTriggered: { root.error = "Request timed out; will retry."; collector.running = false }
+    onTriggered: {
+      root.timedOut = true
+      root.error = "Request timed out; will retry."
+      if (collector.running) collector.running = false
+      else root.inFlight = false
+    }
   }
   Process {
     id: collector
-    command: ["/usr/bin/python3", String(Qt.resolvedUrl("widget-data.py")).replace(/^file:\/\//, ""), root.kind, root.city]
-    onRunningChanged: if (running) deadline.restart(); else deadline.stop()
+    command: ["/usr/bin/python3", decodeURIComponent(String(Qt.resolvedUrl("widget-data.py")).replace(/^file:\/\//, "")), root.kind, root.runningCity]
     stdout: SplitParser {
       onRead: function(line) { if (root.buffer.length + line.length < 65536) root.buffer += line }
     }
     onExited: function(code) {
+      deadline.stop()
+      root.inFlight = false
       if (!root.active) return
-      if (code !== 0) { root.error = "Collector unavailable; will retry."; return }
-      try {
-        var next = JSON.parse(root.buffer)
-        if (next.error) root.error = String(next.error)
-        else { root.report = next; root.error = "" }
-      } catch (e) { root.error = "Invalid response; will retry." }
+      if (root.runningRevision === root.revision) root.acceptResponse(code)
+      if (root.pendingRefresh) Qt.callLater(root.startPending)
     }
   }
 }

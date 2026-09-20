@@ -4,7 +4,7 @@ Omacrunch turns the Omarchy shell into a complete CrunchBang++-inspired
 desktop. It is not a launcher skin: it changes the persistent desktop
 experience while keeping Omarchy's native Hyprland and Quickshell stack.
 
-Version `0.7.3` provides:
+Version `0.7.4` provides:
 
 - a flat, translucent, 30-pixel topbar on every monitor;
 - a Tint2-style workspace/taskbar hybrid with five persistent workspaces;
@@ -153,7 +153,11 @@ a drag or wallpaper change. Loading and error states use a readable fallback.
   When enabled, it contacts `geocoding-api.open-meteo.com` (city lookup) and
   `api.open-meteo.com` every 15 minutes. [Open-Meteo](https://open-meteo.com/)
   supplies the data. Requests have timeouts and response limits; errors preserve
-  the last successful result with its age shown.
+  the last successful result with its age shown and retry after one minute.
+  Startup waits for the saved location before fetching. The saved city remains
+  visible while loading or offline; it is not mistaken for a missing location.
+  Confirming the same city with Enter retries immediately, without changing its
+  spelling. Location saves also survive cancelling widget-position edits.
 - **Agent Usage** reads Omarchy's existing `agents/usage/*.json` records once a
   minute. It displays provider limits, token counts, auth/status errors and
   update age. It does not read credentials or transcripts or refresh providers

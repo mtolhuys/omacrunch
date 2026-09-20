@@ -20,9 +20,13 @@ Item {
   property alias widgetStore: widgets
 
   WidgetStore { id: widgets }
-  WidgetFeed { id: weatherFeed; kind: "weather"; active: widgets.anyEnabled("weather"); city: widgets.layout.weatherCity; interval: 900000 }
-  WidgetFeed { id: diskFeed; kind: "disk"; active: widgets.anyEnabled("disk"); interval: 60000 }
-  WidgetFeed { id: agentFeed; kind: "agents"; active: widgets.anyEnabled("agents"); interval: 60000 }
+  WidgetFeed { id: weatherFeed; kind: "weather"; active: widgets.loaded && widgets.anyEnabled("weather"); city: widgets.layout.weatherCity; interval: 900000 }
+  WidgetFeed { id: diskFeed; kind: "disk"; active: widgets.loaded && widgets.anyEnabled("disk"); interval: 60000 }
+  WidgetFeed { id: agentFeed; kind: "agents"; active: widgets.loaded && widgets.anyEnabled("agents"); interval: 60000 }
+  Connections {
+    target: widgets
+    function onWeatherLocationSaved() { weatherFeed.refresh() }
+  }
 
   property var cpuSnapshot: ({ total: 0, idle: 0 })
   property real cpuPercent: 0
@@ -200,7 +204,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.7.3",
+        version: manifest && manifest.version ? String(manifest.version) : "0.7.4",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
@@ -227,7 +231,8 @@ Item {
     function widgetState(): string {
       return JSON.stringify({ editing: widgets.editing, loaded: widgets.loaded, layout: widgets.layout,
         error: widgets.error, disk: diskFeed.report, agents: agentFeed.report,
-        weather: weatherFeed.report, weatherError: weatherFeed.error })
+        weather: weatherFeed.report, weatherError: weatherFeed.error,
+        weatherBusy: weatherFeed.busy, weatherNeedsLocation: weatherFeed.needsLocation })
     }
     function editWidgets(): string { widgets.begin(); return "editing" }
     function finishWidgets(save: bool): string { widgets.finish(save); return "done" }

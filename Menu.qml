@@ -289,7 +289,7 @@ Item {
                 anchors.fill: parent; anchors.margins: Style.space(8)
                 color: Color.menu.text; font.family: "monospace"; font.pixelSize: Style.font.body
                 maximumLength: 120; clip: true; selectByMouse: true
-                onAccepted: { if (root.store) root.store.setCity(text); locationBox.visible = false; keySurface.forceActiveFocus() }
+                onAccepted: { if (root.store && root.store.setCity(text)) { locationBox.visible = false; keySurface.forceActiveFocus() } }
                 Keys.onEscapePressed: { locationBox.visible = false; keySurface.forceActiveFocus() }
               }
             }

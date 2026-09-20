@@ -11,6 +11,8 @@ Item {
   property bool loaded: false
   property bool directoryReady: false
   property string error: ""
+  property var pendingLayout: Layout.defaults()
+  signal weatherLocationSaved()
   readonly property string directory: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/omacrunch"
 
   function item(screen, id) { return Layout.entry(layout, screen, id) }
@@ -44,17 +46,29 @@ Item {
     if (!editing) persist()
   }
   function setCity(city) {
+    if (!loaded) { error = "Settings are still loading; try again."; return false }
     var next = Layout.normalize(layout)
     next.weatherCity = String(city || "").trim().slice(0, 120)
     layout = next
-    if (!editing) persist()
+    // Location is a preference, not a draft widget position. Saving it must
+    // survive cancelling layout edits without committing those draft positions.
+    if (editing) {
+      var saved = Layout.normalize(savedLayout)
+      saved.weatherCity = next.weatherCity
+      savedLayout = saved
+    }
+    persist(editing ? savedLayout : layout)
+    weatherLocationSaved()
+    return true
   }
-  function persist() {
+  function persist(snapshot) {
     if (!loaded) return
     error = ""
-    if (directoryReady) stateFile.setText(JSON.stringify(layout, null, 2) + "\n")
+    pendingLayout = Layout.normalize(snapshot || layout)
+    if (directoryReady) writePending()
     else ensureDirectory.running = true
   }
+  function writePending() { stateFile.setText(JSON.stringify(pendingLayout, null, 2) + "\n") }
   FileView {
     id: stateFile
     path: root.directory + "/widgets.json"
@@ -75,7 +89,7 @@ Item {
     onRunningChanged: if (running) deadline.restart(); else deadline.stop()
     onExited: function(code) {
       root.directoryReady = code === 0
-      if (root.directoryReady) root.persist()
+      if (root.directoryReady) root.writePending()
       else root.error = "Could not create widget layout directory."
     }
   }

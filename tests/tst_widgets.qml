@@ -46,6 +46,18 @@ FloatingWindow {
       compare(fresh.item("test-screen", "disk").enabled, true)
       compare(fresh.item("test-screen", "disk").x, expected)
       fresh.destroy()
+      store.begin()
+      store.place("test-screen", "disk", {x: 0.9, y: 0.9})
+      verify(store.setCity("  Den Helder  "))
+      wait(200)
+      fresh = Qt.createQmlObject('import "."; WidgetStore {}', card.parent)
+      tryCompare(fresh, "loaded", true)
+      compare(fresh.layout.weatherCity, "Den Helder", "location saves during layout editing")
+      compare(fresh.item("test-screen", "disk").x, expected, "location save does not save draft positions")
+      fresh.destroy()
+      store.finish(false)
+      compare(store.layout.weatherCity, "Den Helder", "layout Cancel does not revert location")
+      compare(store.item("test-screen", "disk").x, expected)
     }
   }
   Timer {

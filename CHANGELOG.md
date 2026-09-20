@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.4 - 2026-09-20
+
+- Fix a collector lifecycle race: queue a replacement request until the
+  cancelled process has exited and discard its stale result/error.
+- Wait for stored widget settings on startup; keep the configured weather city
+  visible during loading/errors and retry failures after a minute, not fifteen.
+- Reconfirming the same location refreshes immediately. Saving a location
+  during layout editing persists it independently of draft widget positions.
+- Add subprocess lifecycle, cancellation, retry, timeout, same-city refresh and
+  fresh-session location persistence regressions.
+
 ## 0.7.3 - 2026-09-20
 
 - Add direct Wallpaper and Theme root-menu entries using the native Omarchy
