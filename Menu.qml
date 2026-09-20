@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons
 import qs.Ui
@@ -20,9 +21,15 @@ Item {
   property int selectedIndex: 0
   property real requestedX: Style.space(42)
   property real requestedY: Style.space(42)
+  property string shortcutState: "checking"
+  property string shortcutMessage: ""
+  property string shortcutAction: "status-code"
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
-  readonly property var rootEntries: MenuActions.rootEntries()
+  readonly property string shortcutHelper: decodeURIComponent(
+    String(Qt.resolvedUrl("shortcut.py")).replace(/^file:\/\//, ""))
+  readonly property bool shortcutBusy: shortcutProcess.running
+  readonly property var rootEntries: MenuActions.rootEntries(root.shortcutState, root.shortcutBusy)
   readonly property int widgetsIndex: rootEntries.findIndex(function(entry) { return entry.action === "widgets" })
   readonly property var entries: page === "widgets" ? widgetEntries : rootEntries
   readonly property string screenName: targetScreen ? String(targetScreen.name) : ""
@@ -57,6 +64,7 @@ Item {
     locationBox.visible = false
     root.focusPrimed = false
     root.opened = true
+    root.refreshShortcut()
     focusPrimeTimer.restart()
     Qt.callLater(function() { keySurface.forceActiveFocus() })
   }
@@ -78,9 +86,56 @@ Item {
     root.selectedIndex = (root.selectedIndex + delta + root.entries.length) % root.entries.length
   }
 
+  function runShortcut(action) {
+    if (shortcutProcess.running) return false
+    root.shortcutAction = action
+    shortcutProcess.command = ["/usr/bin/python3", root.shortcutHelper, action]
+    shortcutProcess.running = true
+    return true
+  }
+
+  function refreshShortcut(clearMessage) {
+    if (clearMessage !== false) root.shortcutMessage = ""
+    root.shortcutState = "checking"
+    root.runShortcut("status-code")
+  }
+
+  function finishShortcut(code) {
+    shortcutDeadline.stop()
+    if (root.shortcutAction === "status-code") {
+      if (code === 0) root.shortcutState = "free"
+      else if (code === 10) root.shortcutState = "owned"
+      else if (code === 11) {
+        root.shortcutState = "personal-conflict"
+        root.shortcutMessage = "Super+Alt+C is already in use."
+      } else if (code === 12) {
+        root.shortcutState = "ambiguous"
+        root.shortcutMessage = "The Omacrunch shortcut block needs manual attention."
+      } else {
+        root.shortcutState = "unavailable"
+        root.shortcutMessage = "Could not inspect Super+Alt+C."
+      }
+      return
+    }
+    if (code === 0) root.shortcutMessage = root.shortcutAction === "install-quiet"
+      ? "Super+Alt+C installed." : "Super+Alt+C removed."
+    else root.shortcutMessage = "Shortcut change was refused; no personal binding was replaced."
+    Qt.callLater(function() { root.refreshShortcut(false) })
+  }
+
+  function manageShortcut() {
+    if (root.shortcutState === "free") root.runShortcut("install-quiet")
+    else if (root.shortcutState === "owned") root.runShortcut("remove-quiet")
+    else if (root.shortcutState !== "checking") root.refreshShortcut()
+  }
+
   function activate(index) {
     var entry = entries[index]
     if (!entry) return
+    if (entry.enabled === false) {
+      if (!root.shortcutMessage) root.shortcutMessage = "Super+Alt+C is unavailable."
+      return
+    }
     if (entry.action === "widgets") { page = "widgets"; selectedIndex = 0; return }
     if (page === "widgets") {
       if (!store) return
@@ -90,6 +145,7 @@ Item {
       if (entry.action === "edit") { root.dismiss(); store.begin(); return }
       return
     }
+    if (entry.action === "shortcut") { root.manageShortcut(); return }
     var command = MenuActions.commandFor(entry)
     if (!command.length) return
     root.dismiss()
@@ -113,6 +169,21 @@ Item {
     interval: 75
     repeat: false
     onTriggered: if (root.opened) root.focusPrimed = true
+  }
+
+  Process {
+    id: shortcutProcess
+    onRunningChanged: if (running) shortcutDeadline.restart()
+    onExited: function(code) { root.finishShortcut(code) }
+  }
+  Timer {
+    id: shortcutDeadline
+    interval: 12000
+    onTriggered: {
+      if (shortcutProcess.running) shortcutProcess.running = false
+      root.shortcutState = "unavailable"
+      root.shortcutMessage = "Shortcut inspection timed out."
+    }
   }
 
   PanelWindow {
@@ -251,18 +322,22 @@ Item {
                 Text {
                   Layout.fillWidth: true
                   text: modelData.label
-                  color: index === root.selectedIndex ? Color.menu.selectedText : Color.menu.text
+                  color: modelData.enabled === false
+                    ? Util.alpha(Color.menu.text, 0.42)
+                    : (index === root.selectedIndex ? Color.menu.selectedText : Color.menu.text)
                   font.family: "monospace"
                   font.pixelSize: Style.font.body
                 }
                 Text {
-                  visible: root.page === "widgets" || !!modelData.route || modelData.action === "widgets"
-                  text: modelData.widget && root.store
-                    ? (root.store.enabled(root.screenName, modelData.widget) ? "●" : "○")
-                    : "›"
+                  visible: root.page === "widgets" || !!modelData.route
+                    || modelData.action === "widgets" || !!modelData.hint
+                  text: modelData.hint ? modelData.hint
+                    : (modelData.widget && root.store
+                      ? (root.store.enabled(root.screenName, modelData.widget) ? "●" : "○")
+                      : "›")
                   color: Util.alpha(index === root.selectedIndex ? Color.menu.selectedText : Color.menu.text, 0.65)
                   font.family: "monospace"
-                  font.pixelSize: Style.font.body
+                  font.pixelSize: modelData.hint ? Style.font.caption : Style.font.body
                 }
               }
 
@@ -293,6 +368,16 @@ Item {
                 Keys.onEscapePressed: { locationBox.visible = false; keySurface.forceActiveFocus() }
               }
             }
+          }
+          Text {
+            visible: root.page === "root" && root.shortcutMessage !== ""
+            width: parent.width
+            text: root.shortcutMessage
+            textFormat: Text.PlainText
+            wrapMode: Text.WordWrap
+            color: Util.alpha(Color.menu.text, 0.62)
+            font.family: "monospace"
+            font.pixelSize: Style.font.caption
           }
           Text {
             visible: root.page === "widgets"

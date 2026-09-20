@@ -24,6 +24,9 @@ Item {
 
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
+  readonly property string home: Quickshell.env("HOME")
+  readonly property string toggleDirectory: home + "/.local/state/omarchy/toggles"
+  readonly property string barHiddenFlag: toggleDirectory + "/bar-off"
   readonly property string position: "top"
   readonly property bool vertical: false
   readonly property int barSize: 30
@@ -31,8 +34,10 @@ Item {
   readonly property int taskSlotWidth: Style.space(18)
   readonly property int taskIconSize: Style.space(13)
   readonly property int workspaceContentPadding: Style.space(2)
-  property real panelOpacity: 0.92
-  readonly property bool transparent: panelOpacity < 1
+  property bool barHidden: false
+  property bool requestedTransparent: !!(barConfig && barConfig.transparent === true)
+  readonly property real panelOpacity: requestedTransparent ? 0 : 0.92
+  readonly property bool transparent: requestedTransparent
   readonly property color foreground: Color.bar.text
   readonly property color barForeground: foreground
   readonly property color background: Color.bar.background
@@ -373,7 +378,16 @@ Item {
   function shellQuote(value) { return Util.shellQuote(String(value || "")) }
 
   function toggleTransparency() {
-    panelOpacity = panelOpacity < 1 ? 1 : 0.92
+    var nextTransparent = !root.requestedTransparent
+    if (root.shell && typeof root.shell.mutateShellConfig === "function") {
+      root.shell.mutateShellConfig(function(config) {
+        if (!Util.isPlainObject(config.bar)) config.bar = {}
+        config.bar.transparent = nextTransparent
+      })
+    } else {
+      root.requestedTransparent = nextTransparent
+    }
+    return nextTransparent
   }
 
   function workspaceById(id) {
@@ -443,6 +457,28 @@ Item {
     onTriggered: root.tooltipShown = root.tooltipTarget !== null && root.tooltipText !== ""
   }
 
+  // Honor Omarchy's native `omarchy toggle bar` state. Keeping the surfaces
+  // mapped and parking them just above the screen makes both hide and reveal
+  // immediate without rebuilding every hosted plugin widget.
+  Process {
+    id: barHiddenProbe
+    command: ["/usr/bin/test", "-e", root.barHiddenFlag]
+    onRunningChanged: if (running) barHiddenDeadline.restart(); else barHiddenDeadline.stop()
+    onExited: function(code) { root.barHidden = code === 0 }
+  }
+  Timer {
+    id: barHiddenDeadline
+    interval: 3000
+    onTriggered: barHiddenProbe.running = false
+  }
+  FileView {
+    path: root.toggleDirectory
+    watchChanges: true
+    printErrors: false
+    onFileChanged: if (!barHiddenProbe.running) barHiddenProbe.running = true
+  }
+  Component.onCompleted: barHiddenProbe.running = true
+
   IpcHandler {
     target: "omacrunch-bar"
 
@@ -454,8 +490,15 @@ Item {
         clients: Hyprland.toplevels.values.length,
         widgets: root.liveWidgets.length,
         widgetMetrics: root.widgetMetrics(),
+        hidden: root.barHidden,
+        transparent: root.transparent,
+        panelOpacity: root.panelOpacity,
         focusedWorkspace: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
       })
+    }
+
+    function toggleTransparency(): string {
+      return root.toggleTransparency() ? "transparent" : "opaque"
     }
 
     function toggleTray(): string {
@@ -499,17 +542,27 @@ Item {
       anchors { top: true; left: true; right: true }
       implicitHeight: root.barSize
       color: "transparent"
-      exclusionMode: ExclusionMode.Auto
+      exclusionMode: root.barHidden ? ExclusionMode.Ignore : ExclusionMode.Auto
       WlrLayershell.namespace: "omacrunch-bar"
       WlrLayershell.layer: WlrLayer.Top
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+      property real parkedOffset: root.barHidden ? -root.barSize : 0
+      margins { top: Math.round(barWindow.parkedOffset) }
+      Behavior on parkedOffset {
+        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+      }
 
       Component.onCompleted: root.registerBarWindow(barWindow)
       Component.onDestruction: root.unregisterBarWindow(barWindow)
 
       Rectangle {
         anchors.fill: parent
-        color: Util.alpha(root.background, root.panelOpacity)
+        color: root.background
+        opacity: root.panelOpacity
+        Behavior on opacity {
+          NumberAnimation { duration: 220; easing.type: Easing.InOutCubic }
+        }
       }
 
       Rectangle {
@@ -518,6 +571,8 @@ Item {
         anchors.bottom: parent.bottom
         height: 1
         color: Util.alpha(root.foreground, 0.18)
+        opacity: root.transparent ? 0.45 : 1
+        Behavior on opacity { NumberAnimation { duration: 220 } }
       }
 
       RowLayout {
@@ -885,6 +940,15 @@ Item {
             }
           }
         }
+      }
+
+      // Pointer handlers observe passively, so existing workspace, tray and
+      // plugin clicks keep their grabs while a double-click anywhere on the
+      // bar can still toggle its background.
+      TapHandler {
+        acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.DragThreshold
+        onDoubleTapped: root.toggleTransparency()
       }
 
       PopupWindow {

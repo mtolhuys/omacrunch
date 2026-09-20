@@ -45,6 +45,9 @@ omarchy plugin update io.github.mtolhuys.omacrunch --yes
 |---|---|
 | Right-click the desktop | Open the Crunch menu |
 | Click the Omarchy logo | Open the same menu |
+| Press `Super+Alt+C` | Open the Crunch menu after one-time setup |
+| Press `Super+Shift+Space` | Hide or reveal the topbar |
+| Double-click the topbar | Fade its background between solid and transparent |
 | Press `I` in the menu | Open Widgets |
 | Choose **Edit layout** | Drag widgets by their handle |
 | Press Enter / Escape | Save / cancel the layout |
@@ -54,6 +57,11 @@ omarchy plugin update io.github.mtolhuys.omacrunch --yes
 
 Wallpaper and theme actions use Omarchy's native pickers. Existing Hyprland
 shortcuts continue to work.
+
+Choose **Install menu shortcut** once in the Crunch menu to claim
+`Super+Alt+C`. Omacrunch only installs it when the chord is free, creates a
+private backup and rolls back if Hyprland cannot reload it. The same menu row
+removes the exact Omacrunch-owned binding again.
 
 ## Widgets
 
@@ -97,6 +105,12 @@ Omakit's shipped VM suites do not currently cover arbitrary plugin pointer
 gestures, so drag behaviour also has focused component and live-shell tests.
 
 ## Remove
+
+If you installed `Super+Alt+C`, choose **Remove menu shortcut** first or run:
+
+```bash
+python3 "$HOME/.config/omarchy/plugins/io.github.mtolhuys.omacrunch/shortcut.py" remove
+```
 
 ```bash
 omarchy plugin remove io.github.mtolhuys.omacrunch --yes

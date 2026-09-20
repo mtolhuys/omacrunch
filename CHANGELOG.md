@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 - 2026-09-20
+
+- Add an explicit, reversible `Super+Alt+C` Crunch-menu shortcut with conflict
+  detection, private backup, atomic writes, Hyprland validation and rollback.
+- Add shortcut installation/removal and native topbar visibility to the Crunch
+  menu; keep Omarchy's existing `Super+Shift+Space` binding authoritative.
+- Mirror Omarchy's `bar-off` state with a smooth parked-surface transition, so
+  hiding the replacement bar removes its exclusion zone without rebuilding it.
+- Double-click anywhere on the topbar to persistently fade its background
+  between solid and transparent without stealing normal widget clicks.
+
 ## 0.7.4 - 2026-09-20
 
 - Fix a collector lifecycle race: queue a replacement request until the

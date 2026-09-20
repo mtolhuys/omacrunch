@@ -204,7 +204,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.7.4",
+        version: manifest && manifest.version ? String(manifest.version) : "0.8.0",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
@@ -447,7 +447,7 @@ Item {
             rowSpacing: Style.space(4)
 
             Hint { keys: "SUPER + RETURN"; action: "terminal"; toneZone: "footer" }
-            Hint { keys: "SUPER + SPACE"; action: "menu"; toneZone: "footer" }
+            Hint { keys: "SUPER + ALT + C"; action: "crunch menu"; toneZone: "footer" }
             Hint { keys: "SUPER + 1…9"; action: "workspace"; toneZone: "footer" }
             Hint { keys: "SUPER + Q"; action: "close"; toneZone: "footer" }
             Hint { keys: "RIGHT CLICK"; action: "menu"; toneZone: "footer" }
