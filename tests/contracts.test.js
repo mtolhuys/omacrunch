@@ -12,7 +12,7 @@ const widgetStore = fs.readFileSync(path.join(__dirname, "..", "WidgetStore.qml"
 const pluginOrderStore = fs.readFileSync(path.join(__dirname, "..", "PluginOrderStore.qml"), "utf8")
 const uiScripts = ["widget-ui.sh", "widget-feed-ui.sh", "plugin-shelf-ui.sh"]
   .map(name => fs.readFileSync(path.join(__dirname, name), "utf8")).join("\n")
-const processOwners = { bar, menu, wallpaperTone, widgetFeed, widgetStore, pluginOrderStore }
+const processOwners = { bar, menu, service, wallpaperTone, widgetFeed, widgetStore, pluginOrderStore }
 const injected = ["omarchyPath", "barWidgetRegistry", "barConfig"]
 
 for (const property of injected) {
@@ -70,7 +70,7 @@ assert.doesNotMatch(menu, /text:\s*[^\n]*(?:OMACRUNCH|"ROOT")/)
 assert.match(service, /keys:\s*"RIGHT CLICK";\s*action:\s*"menu"/)
 assert.doesNotMatch(service, /action:\s*"omacrunch"/)
 assert.match(menu, /Qt\.ControlModifier\s*\|\s*Qt\.AltModifier\s*\|\s*Qt\.MetaModifier/)
-assert.match(menu, /root\.dismiss\(\)[\s\S]+menuActionRun\.start\(\)/)
+assert.match(menu, /service\.queueMenuAction\(entry\.key\)[\s\S]+root\.dismiss\(\)/)
 assert.doesNotMatch(menu, /selectedIndex\s*=\s*5|if \(index ===/)
 assert.match(menu, /modelData\.action === "widgets" \|\| !!modelData\.hint/)
 assert.match(menu, /readonly property var rootEntries: MenuActions\.rootEntries\(root\.shortcutState, root\.shortcutBusy\)/)
@@ -78,7 +78,13 @@ assert.match(menu, /shortcutRun\.command\s*=\s*\["\/usr\/bin\/python3", "-I", "-
 assert.match(menu, /code === 10\) root\.shortcutState = "owned"/)
 assert.doesNotMatch(menu, /stdout:\s*(?:SplitParser|StdioCollector)/)
 assert.match(menu, /entry\.action === "shortcut"/)
-assert.match(menu, /var command = MenuActions\.commandFor\(entry\)/)
+assert.match(menu, /service\.queueMenuAction\(entry\.key\)/)
+assert.doesNotMatch(menu, /id:\s*menuActionRun/)
+assert.match(service, /function\s+queueMenuAction\(key\)/)
+assert.match(service, /menuActionDelay\.restart\(\)/)
+assert.match(service, /root\.shell\.summon\("omarchy\.menu", JSON\.stringify\(\{ menu: entry\.route \}\)\)/)
+assert.match(service, /Omakit\.Run\s*\{[\s\S]+id:\s*menuActionRun/)
+assert.match(service, /OMACRHY_PATH:\s*root\.omarchyPath/)
 assert.match(menu, /rootEntries\.findIndex\(function\(entry\) \{ return entry\.action === "widgets" \}\)/)
 assert.match(makefile, /node tests\/menu-actions\.test\.js/)
 assert.match(makefile, /node tests\/bar-settings\.test\.js/)
@@ -92,6 +98,8 @@ assert.match(makefile, /omarchy plugin update "\$\(PLUGIN_ID\)" --yes/)
 assert.doesNotMatch(makefile, /install-local:\s*remove-local/)
 assert.match(makefile, /menu lifecycle: mapped\/open -> unmapped\/closed/)
 assert.match(makefile, /namespace\? == "omacrunch-menu"/)
+assert.match(makefile, /native actions: apps, wallpaper, theme, style and power mapped successfully/)
+assert.match(makefile, /command action: bar toggled and restored through the persistent runner/)
 assert.match(makefile, /omarchy-shell omacrunch toneState/)
 assert.match(makefile, /omarchy-shell omacrunch-bar state/)
 assert.match(makefile, /omarchy-shell omacrunch-bar clockState/)

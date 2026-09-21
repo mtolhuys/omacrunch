@@ -154,7 +154,7 @@ open:
 		exit 1; \
 	fi
 	@service_state="$$(omarchy-shell omacrunch state)"; \
-	if ! jq -e '.version == "0.9.1" and .widgetStoreLoaded == true and .widgetStoreError == ""' <<<"$$service_state" >/dev/null; then \
+	if ! jq -e '.version == "0.9.2" and .widgetStoreLoaded == true and .widgetStoreError == ""' <<<"$$service_state" >/dev/null; then \
 		echo "Omacrunch service or Omakit Store was not ready: $$service_state" >&2; exit 1; \
 	fi; \
 	echo "$$service_state"
@@ -210,6 +210,59 @@ open:
 		exit 1; \
 	fi
 	@echo "Omacrunch menu lifecycle: mapped/open -> unmapped/closed"
+	@for route_test in "A:omarchy-menu" "B:omarchy-image-selector" "H:omarchy-image-selector" "S:omarchy-menu" "P:omarchy-menu"; do \
+		key="$${route_test%%:*}"; namespace="$${route_test#*:}"; \
+		if [ "$$(omarchy-shell omacrunch menuAction "$$key")" != "started" ]; then \
+			echo "Omacrunch menu action $$key was not accepted by the persistent dispatcher." >&2; exit 1; \
+		fi; \
+		mapped=0; \
+		for attempt in $$(seq 1 100); do \
+			layers="$$(hyprctl layers -j 2>/dev/null)"; \
+			if jq -e --arg namespace "$$namespace" '[.. | objects | select(.namespace? == $$namespace and (.w? // 0) > 0 and (.h? // 0) > 0)] | length >= 1' <<<"$$layers" >/dev/null 2>&1; then mapped=1; break; fi; \
+			sleep 0.05; \
+		done; \
+		if [ "$$mapped" -ne 1 ]; then \
+			echo "Omacrunch menu action $$key did not map $$namespace." >&2; \
+			omarchy-shell omacrunch menuActionStatus >&2 || true; exit 1; \
+		fi; \
+		omarchy-menu close >/dev/null 2>&1 || true; \
+		omarchy-shell shell hide omarchy.image-picker >/dev/null 2>&1 || true; \
+		unmapped=0; \
+		for attempt in $$(seq 1 40); do \
+			layers="$$(hyprctl layers -j 2>/dev/null)"; \
+			if jq -e --arg namespace "$$namespace" '[.. | objects | select(.namespace? == $$namespace)] | length == 0' <<<"$$layers" >/dev/null 2>&1; then unmapped=1; break; fi; \
+			sleep 0.05; \
+		done; \
+		if [ "$$unmapped" -ne 1 ]; then echo "Omacrunch menu action $$key retained $$namespace after close." >&2; exit 1; fi; \
+	done
+	@echo "Omacrunch native actions: apps, wallpaper, theme, style and power mapped successfully"
+	@initial_hidden="$$(omarchy-shell omacrunch-bar state | jq -r '.hidden')"; \
+	restore_bar() { \
+		current="$$(omarchy-shell omacrunch-bar state 2>/dev/null | jq -r '.hidden' 2>/dev/null || true)"; \
+		if [ "$$current" != "$$initial_hidden" ] && { [ "$$current" = true ] || [ "$$current" = false ]; }; then omarchy toggle bar >/dev/null 2>&1 || true; fi; \
+	}; \
+	trap restore_bar EXIT; \
+	if [ "$$(omarchy-shell omacrunch menuAction O)" != "started" ]; then echo "Omacrunch bar action was not accepted." >&2; exit 1; fi; \
+	expected_hidden=true; [ "$$initial_hidden" = true ] && expected_hidden=false; \
+	toggled=0; \
+	for attempt in $$(seq 1 100); do \
+		bar_state="$$(omarchy-shell omacrunch-bar state 2>/dev/null)"; action_state="$$(omarchy-shell omacrunch menuActionStatus 2>/dev/null)"; \
+		if jq -e --argjson expected "$$expected_hidden" '.hidden == $$expected' <<<"$$bar_state" >/dev/null 2>&1 \
+			&& jq -e '.state == "ok" and .running == false' <<<"$$action_state" >/dev/null 2>&1; then toggled=1; break; fi; \
+		sleep 0.05; \
+	done; \
+	if [ "$$toggled" -ne 1 ]; then echo "Omacrunch persistent command runner did not toggle the bar." >&2; restore_bar; exit 1; fi; \
+	if [ "$$(omarchy-shell omacrunch menuAction O)" != "started" ]; then echo "Omacrunch bar restore action was not accepted." >&2; restore_bar; exit 1; fi; \
+	restored=0; \
+	for attempt in $$(seq 1 100); do \
+		bar_state="$$(omarchy-shell omacrunch-bar state 2>/dev/null)"; action_state="$$(omarchy-shell omacrunch menuActionStatus 2>/dev/null)"; \
+		if jq -e --argjson expected "$$initial_hidden" '.hidden == $$expected' <<<"$$bar_state" >/dev/null 2>&1 \
+			&& jq -e '.state == "ok" and .running == false' <<<"$$action_state" >/dev/null 2>&1; then restored=1; break; fi; \
+		sleep 0.05; \
+	done; \
+	if [ "$$restored" -ne 1 ]; then echo "Omacrunch persistent command runner did not restore the bar." >&2; restore_bar; exit 1; fi; \
+	trap - EXIT; \
+	echo "Omacrunch command action: bar toggled and restored through the persistent runner"
 	@bash tests/plugin-shelf-live.sh
 
 local-test: check install-local open

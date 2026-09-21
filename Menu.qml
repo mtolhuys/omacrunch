@@ -31,6 +31,7 @@ Item {
   readonly property string shortcutHelper: decodeURIComponent(
     String(Qt.resolvedUrl("shortcut.py")).replace(/^file:\/\//, ""))
   readonly property bool shortcutBusy: shortcutRun.running
+  readonly property string actionMessage: service ? String(service.menuActionError || "") : ""
   readonly property var rootEntries: MenuActions.rootEntries(root.shortcutState, root.shortcutBusy)
   readonly property int widgetsIndex: rootEntries.findIndex(function(entry) { return entry.action === "widgets" })
   readonly property var entries: page === "widgets" ? widgetEntries : rootEntries
@@ -153,12 +154,12 @@ Item {
       return
     }
     if (entry.action === "shortcut") { root.manageShortcut(); return }
-    var command = MenuActions.commandFor(entry)
-    if (!command.length) return
+    if (!service || typeof service.queueMenuAction !== "function"
+        || !service.queueMenuAction(entry.key)) {
+      root.shortcutMessage = "Menu action is temporarily unavailable."
+      return
+    }
     root.dismiss()
-    command[0] = root.omarchyPath + "/bin/" + command[0]
-    menuActionRun.command = command
-    menuActionRun.start()
   }
 
   function activateKey(text) {
@@ -180,39 +181,24 @@ Item {
     onTriggered: if (root.opened) root.focusPrimed = true
   }
 
-  function sessionEnvironment(includeOmarchyPath) {
+  function sessionEnvironment() {
     var result = {}
     ;["WAYLAND_DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "DBUS_SESSION_BUS_ADDRESS", "DISPLAY",
       "XDG_CONFIG_HOME", "XDG_STATE_HOME"].forEach(function(name) {
       var value = Quickshell.env(name)
       if (value) result[name] = value
     })
-    if (includeOmarchyPath) result.PATH = root.omarchyPath + "/bin:/usr/bin"
     return result
   }
 
   Omakit.Run {
     id: shortcutRun
-    environment: root.sessionEnvironment(false)
+    environment: root.sessionEnvironment()
     deadlineMs: 12000
     maxBytes: 65536
     keepBytes: 65536
     maxLines: 1024
     onFinished: function(result) { root.finishShortcut(result) }
-  }
-
-  Omakit.Run {
-    id: menuActionRun
-    environment: root.sessionEnvironment(true)
-    deadlineMs: 30000
-    maxBytes: 65536
-    keepBytes: 4096
-    maxLines: 1024
-    onFinished: function(result) {
-      if (result.state === "ok") return
-      root.open("{}")
-      root.shortcutMessage = "Menu action failed (" + result.state + ")."
-    }
   }
 
   PanelWindow {
@@ -399,9 +385,9 @@ Item {
             }
           }
           Text {
-            visible: root.page === "root" && root.shortcutMessage !== ""
+            visible: root.page === "root" && (root.shortcutMessage !== "" || root.actionMessage !== "")
             width: parent.width
-            text: root.shortcutMessage
+            text: root.shortcutMessage || root.actionMessage
             textFormat: Text.PlainText
             wrapMode: Text.WordWrap
             color: Util.alpha(Color.menu.text, 0.62)

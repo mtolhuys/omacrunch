@@ -5,12 +5,15 @@ import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons
 import "Metrics.js" as Metrics
+import "MenuActions.js" as MenuActions
+import "omakit" as Omakit
 
 Item {
   id: root
 
   property var shell: null
   property var manifest: null
+  property string omarchyPath: Quickshell.env("OMARCHY_PATH")
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
   readonly property string home: Quickshell.env("HOME")
@@ -18,6 +21,9 @@ Item {
   readonly property string currentBackground: currentStateDir + "/background"
   property int wallpaperRevision: 0
   property alias widgetStore: widgets
+  property string menuActionState: "idle"
+  property string menuActionError: ""
+  property string pendingMenuKey: ""
 
   WidgetStore { id: widgets }
   WidgetFeed { id: weatherFeed; kind: "weather"; active: widgets.loaded && widgets.anyEnabled("weather"); city: widgets.layout.weatherCity; interval: 900000 }
@@ -103,6 +109,87 @@ Item {
   function openMenu(x, y) {
     if (!root.shell || typeof root.shell.summon !== "function") return
     root.shell.summon(root.pluginId, JSON.stringify({ x: x, y: y }))
+  }
+
+  function menuEntry(key) {
+    var entries = MenuActions.rootEntries("unavailable", false)
+    for (var i = 0; i < entries.length; i++)
+      if (entries[i].key === String(key || "").toUpperCase()) return entries[i]
+    return null
+  }
+
+  function queueMenuAction(key) {
+    var entry = root.menuEntry(key)
+    if (!entry || (!entry.route && MenuActions.commandFor(entry).length === 0)) return false
+    if (menuActionDelay.running || menuActionRun.running) {
+      root.menuActionError = "Another menu action is still starting."
+      return false
+    }
+    root.pendingMenuKey = entry.key
+    root.menuActionState = "queued"
+    root.menuActionError = ""
+    menuActionDelay.restart()
+    return true
+  }
+
+  function failMenuAction(message) {
+    root.menuActionState = "error"
+    root.menuActionError = message
+    root.openMenu(Style.space(42), Style.space(42))
+  }
+
+  function startQueuedMenuAction() {
+    var entry = root.menuEntry(root.pendingMenuKey)
+    root.pendingMenuKey = ""
+    if (!entry) { root.failMenuAction("Menu action is no longer available."); return }
+    if (entry.route) {
+      var opened = root.shell && typeof root.shell.summon === "function"
+        && root.shell.summon("omarchy.menu", JSON.stringify({ menu: entry.route }))
+      if (opened) root.menuActionState = "ok"
+      else root.failMenuAction("Native Omarchy menu route could not be opened.")
+      return
+    }
+    var command = MenuActions.commandFor(entry).slice()
+    if (!command.length) { root.failMenuAction("Menu action has no command."); return }
+    command[0] = root.omarchyPath + "/bin/" + command[0]
+    root.menuActionState = "running"
+    menuActionRun.command = command
+    menuActionRun.start()
+  }
+
+  function sessionEnvironment() {
+    var result = { PATH: root.omarchyPath + "/bin:/usr/bin", OMACRHY_PATH: root.omarchyPath }
+    ;["WAYLAND_DISPLAY", "HYPRLAND_INSTANCE_SIGNATURE", "DBUS_SESSION_BUS_ADDRESS", "DISPLAY",
+      "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME", "XDG_DATA_DIRS",
+      "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "XDG_SESSION_DESKTOP", "DESKTOP_SESSION"].forEach(function(name) {
+      var value = Quickshell.env(name)
+      if (value) result[name] = value
+    })
+    return result
+  }
+
+  Timer {
+    id: menuActionDelay
+    interval: 50
+    repeat: false
+    onTriggered: root.startQueuedMenuAction()
+  }
+
+  Omakit.Run {
+    id: menuActionRun
+    environment: root.sessionEnvironment()
+    deadlineMs: 30000
+    maxBytes: 65536
+    keepBytes: 4096
+    maxLines: 1024
+    onFinished: function(result) {
+      if (result.state === "ok") {
+        root.menuActionState = "ok"
+        root.menuActionError = ""
+        return
+      }
+      root.failMenuAction("Menu action failed (" + result.state + ").")
+    }
   }
 
   FileView {
@@ -204,7 +291,7 @@ Item {
 
     function state(): string {
       return JSON.stringify({
-        version: manifest && manifest.version ? String(manifest.version) : "0.9.1",
+        version: manifest && manifest.version ? String(manifest.version) : "0.9.2",
         screens: Quickshell.screens.length,
         cpuPercent: Math.round(root.cpuPercent),
         memoryPercent: Math.round(root.memory.percent),
@@ -247,6 +334,15 @@ Item {
     function menuState(): string {
       return root.shell && typeof root.shell.isPluginOpen === "function"
         && root.shell.isPluginOpen(root.pluginId) ? "open" : "closed"
+    }
+
+    function menuAction(key: string): string {
+      return root.queueMenuAction(key) ? "started" : "unavailable"
+    }
+
+    function menuActionStatus(): string {
+      return JSON.stringify({ state: root.menuActionState, error: root.menuActionError,
+        pendingKey: root.pendingMenuKey, running: menuActionRun.running })
     }
 
     function toneState(): string {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.2 - 2026-09-21
+
+- Move every root-menu command to the long-lived service so closing the lazy
+  menu Loader can no longer cancel the action it just selected.
+- Hand native Applications, Wallpaper, Theme, Style and Power routes directly
+  to the Omarchy shell after focus is released.
+- Exercise all five native routes against their real mapped layer, plus a
+  reversible external command, and surface failures when the menu reopens.
+
 ## 0.9.1 - 2026-09-21
 
 - Restore the Crunch menu by keeping the shell-injected `omarchyPath`
