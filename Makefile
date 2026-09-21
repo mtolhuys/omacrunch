@@ -154,7 +154,7 @@ open:
 		exit 1; \
 	fi
 	@service_state="$$(omarchy-shell omacrunch state)"; \
-	if ! jq -e '.version == "0.9.0" and .widgetStoreLoaded == true and .widgetStoreError == ""' <<<"$$service_state" >/dev/null; then \
+	if ! jq -e '.version == "0.9.1" and .widgetStoreLoaded == true and .widgetStoreError == ""' <<<"$$service_state" >/dev/null; then \
 		echo "Omacrunch service or Omakit Store was not ready: $$service_state" >&2; exit 1; \
 	fi; \
 	echo "$$service_state"
@@ -182,6 +182,16 @@ open:
 		sleep 0.05; \
 	done; \
 	if [ "$$menu_ready" -ne 1 ]; then echo "Omacrunch menu did not open." >&2; exit 1; fi
+	@menu_layer_ready=0; \
+	for attempt in $$(seq 1 30); do \
+		menu_layers="$$(hyprctl layers -j 2>/dev/null)"; \
+		if jq -e '[.. | objects | select(.namespace? == "omacrunch-menu" and (.w? // 0) > 0 and (.h? // 0) > 0)] | length >= 1' <<<"$$menu_layers" >/dev/null 2>&1; then menu_layer_ready=1; break; fi; \
+		sleep 0.05; \
+	done; \
+	if [ "$$menu_layer_ready" -ne 1 ]; then \
+		echo "Omacrunch reported an open menu without a mapped omacrunch-menu layer." >&2; \
+		exit 1; \
+	fi
 	@omarchy-shell shell hide "$(PLUGIN_ID)"
 	@menu_closed=0; \
 	for attempt in $$(seq 1 30); do \
@@ -189,7 +199,17 @@ open:
 		sleep 0.05; \
 	done; \
 	if [ "$$menu_closed" -ne 1 ]; then echo "Omacrunch menu retained input focus after hide." >&2; exit 1; fi
-	@echo "Omacrunch menu lifecycle: open -> closed"
+	@menu_layer_closed=0; \
+	for attempt in $$(seq 1 30); do \
+		menu_layers="$$(hyprctl layers -j 2>/dev/null)"; \
+		if jq -e '[.. | objects | select(.namespace? == "omacrunch-menu")] | length == 0' <<<"$$menu_layers" >/dev/null 2>&1; then menu_layer_closed=1; break; fi; \
+		sleep 0.05; \
+	done; \
+	if [ "$$menu_layer_closed" -ne 1 ]; then \
+		echo "Omacrunch menu layer remained mapped after hide." >&2; \
+		exit 1; \
+	fi
+	@echo "Omacrunch menu lifecycle: mapped/open -> unmapped/closed"
 	@bash tests/plugin-shelf-live.sh
 
 local-test: check install-local open

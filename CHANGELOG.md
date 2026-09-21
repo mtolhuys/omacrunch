@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1 - 2026-09-21
+
+- Restore the Crunch menu by keeping the shell-injected `omarchyPath`
+  property writable when its lazy Loader completes.
+- Require the live release test to observe a mapped menu layer on open and
+  its removal on close, rather than trusting logical menu state alone.
+
 ## 0.9.0 - 2026-09-20
 
 - Route every plugin-started program through Omakit's versioned Run block for

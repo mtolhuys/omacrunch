@@ -27,7 +27,7 @@ Item {
   property string shortcutAction: "status-code"
   readonly property string pluginId: manifest && manifest.id
     ? String(manifest.id) : "io.github.mtolhuys.omacrunch"
-  readonly property string omarchyPath: Quickshell.env("OMARCHY_PATH")
+  property string omarchyPath: Quickshell.env("OMARCHY_PATH")
   readonly property string shortcutHelper: decodeURIComponent(
     String(Qt.resolvedUrl("shortcut.py")).replace(/^file:\/\//, ""))
   readonly property bool shortcutBusy: shortcutRun.running
